@@ -11,4 +11,4 @@
 
 (defmethod authorize ((mp monetra-processor) cc-data amount &key bill-address &allow-other-keys))
 
-(defmethod capture ((mp monetra-processor) transaction-id &key amount  ))
+(defmethod preauth-capture ((mp monetra-processor) transaction-id &key amount  ))

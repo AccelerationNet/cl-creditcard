@@ -2,11 +2,20 @@
 
 (in-package :cl-monetra)
 
-(defgeneric sale (processor cc-data amount &key &allow-other-keys))
+;;;; Processor Functions
+
+(defgeneric sale (processor cc-data amount &key &allow-other-keys)
+  (:documentation "Do a one time charge on a credit card for an amount using
+the given processor. Other provided keys are up to the processor to interpret
+or ignore."))
 
 (defgeneric authorize (processor cc-data amount &key &allow-other-keys))
 
-(defgeneric preauth-capture (processor transaction-id &key amount  ))
+(defgeneric preauth-capture (processor transaction-id &key amount &allow-other-keys ))
+
+(defgeneric void (processor transaction-id &key &allow-other-keys))
+
+;;;; Data Container and functions to validate it
 
 
 (defclass cc-data ()
@@ -31,7 +40,7 @@ the type, so you can feed it any data structure that responds to these set of ac
   (:documentation "Check the credit-card number is valid looking based on
 the luhn algorithm: http://en.wikipedia.org/wiki/Luhn_algorithm"))
 
-(defgeneric check-valid (cc-data &key
+(defun check-valid (cc-data &key
 				 require-avs
 				 require-cv
 				 error-p
@@ -42,4 +51,8 @@ Can optionally require that AVS verification, Card Verfication data be present.
 Can optionally signal an error if data isn't present.
 
 Some merchant accounts will incur extra fees if AVS isn't used."))
+
+
+
+;;;; Conditions
 

@@ -1,5 +1,3 @@
-
-
 (in-package :cl-monetra)
 
 ;;;; Processor Functions
@@ -7,13 +5,20 @@
 (defgeneric sale (processor cc-data amount &key &allow-other-keys)
   (:documentation "Do a one time charge on a credit card for an amount using
 the given processor. Other provided keys are up to the processor to interpret
-or ignore."))
+or ignore.
 
-(defgeneric authorize (processor cc-data amount &key &allow-other-keys))
+Returns the transaction's unique identifier if successful."))
 
-(defgeneric preauth-capture (processor transaction-id &key amount &allow-other-keys ))
+(defgeneric authorize (processor cc-data amount &key &allow-other-keys)
+  (:documentation "Do a pre-authorization without capture returning a
+transaction identifier that can later be used with preauth-capture."))
 
-(defgeneric void (processor transaction-id &key &allow-other-keys))
+(defgeneric preauth-capture (processor transaction-id &key amount &allow-other-keys )
+  (:documentation "Capture a charge that was previously authorized with authorize.
+Some processors allow capturing a different amount than was originally authorized."))
+
+(defgeneric void (processor transaction-id &key &allow-other-keys)
+  (:documentation "Void a previous transaction."))
 
 ;;;; Data Container and functions to validate it
 
@@ -41,10 +46,10 @@ the type, so you can feed it any data structure that responds to these set of ac
 the luhn algorithm: http://en.wikipedia.org/wiki/Luhn_algorithm"))
 
 (defun check-valid (cc-data &key
-				 require-avs
-				 require-cv
-				 error-p
-				)
+		    require-avs
+		    require-cv
+		    error-p
+		    )
   (:documenation "Check that a cc-data like structure has enough data to
 complete a transaction.
 Can optionally require that AVS verification, Card Verfication data be present.
@@ -56,3 +61,9 @@ Some merchant accounts will incur extra fees if AVS isn't used."))
 
 ;;;; Conditions
 
+
+
+;;; example
+(let ((ccdata (gather-data-from-form))
+      (mp (make-instance 'monetra-processor)))
+  (sale mp ccdata 43))

@@ -30,8 +30,8 @@ Some processors allow capturing a different amount than was originally authorize
 	    :documentation "The card expiration date")
    (name :initarg :name :accessor name :initform nil
 	 :documentation "The cardholder's name as appears on card.")
-   (cv :initarg :cv :accessor cv :initform nil
-       :documentation "Card Verification value. Usually 3-4 digits on back of card.")
+   (ccv :initarg :ccv :accessor ccv :initform nil
+       :documentation "Card [Code] Verification value. Usually 3-4 digits on back of card.")
    (address :initarg :address :accessor address :initform nil
 	:documentation "Street address for AVS. Typically only numbers need to
 be passed in this fields.  Letters and other characters are ignored.")
@@ -47,7 +47,7 @@ the luhn algorithm: http://en.wikipedia.org/wiki/Luhn_algorithm"))
 
 (defun check-valid (cc-data &key
 		    require-avs
-		    require-cv
+		    require-ccv
 		    error-p
 		    )
   (:documenation "Check that a cc-data like structure has enough data to

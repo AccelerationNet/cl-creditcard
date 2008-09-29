@@ -7,13 +7,22 @@
 (defconstant +ETX+ #x03)
 (defparameter +monetra-enc+ (flex:make-external-format :utf-8))
 
+(defun string-to-octets (s)
+  (flex:string-to-octets s :external-format +monetra-enc+))
+(defun octets-to-string (o)
+  (flex:octets-to-string o :external-format +monetra-enc+))
+
+(defun hash->string (msghash)
+  (error "Not yet implemented."))
+
 (defun write-message (sslstream key message)
   (unless (open-stream-p sslstream)
     (error "Attempting to write message to closed stream. ~a" sslstream))
   (flet ((ws (s)
 	   (write-sequence (etypecase s
-			     (string (flex:string-to-octets s :external-format +monetra-enc+))
-			     (flex:octet s))
+			     (string (string-to-octets s ))
+			     (hash-table (string-to-octets (hash->string s)  ))
+			     ((array flex:octet) s))
 			   sslstream))
 	 (wb (b) (write-byte b sslstream)))
     (wb +STX+)
@@ -23,7 +32,7 @@
     (wb +ETX+))
   (finish-output sslstream))
 
-(defun message-from-stream (sslstream)
+(defun read-response (sslstream)
   (unless (and (input-stream-p sslstream)
 	       (subtypep (stream-element-type sslstream) 'flexi-streams:octet)
 	       (open-stream-p sslstream))
@@ -41,8 +50,8 @@
     (flet ((finish-line ()
 	     (let ((*package* (find-package :keyword)) ;want to read in as a keyword
 		   (*read-eval* nil))	;just want to be safe(r)
-	       (let ((k (read-from-string (octets-to-string keybuf :external-format +monetra-enc+)))
-		     (v (octets-to-string valbuf :external-format +monetra-enc+)))
+	       (let ((k (read-from-string (octets-to-string keybuf )))
+		     (v (octets-to-string valbuf )))
 		 (setf (gethash k msghash) v
 		       (fill-pointer keybuf) 0 ;reset the buffers.
 		       (fill-pointer valbuf) 0
@@ -64,17 +73,35 @@
 	      (t (vector-push-extend b buf))) ;otherwise(data) add to active buf
 	 ))
 
-    (values msghash (octets-to-string idbuf :external-format +monetra-enc+))))
+    (values msghash (octets-to-string idbuf ))))
+
+
+(defmethod process ((mp monetra-processor) msg
+		    &optional (id (arnesi:random-string 8)))
+  (let ((usocket (usocket:socket-connect (host mp) (port mp)
+					 :element-type 'flexi-streams:octet)))
+    (with-open-stream (sslstream (cl+ssl:make-ssl-client-stream
+				  (usocket:socket-stream usocket)
+				  :close-callback (lambda ()
+						    (break "closing sockstream: ~a" usocket)
+						    (usocket:socket-close usocket))))
+      (write-message sslstream id msg)
+      (multiple-value-bind (response-hash response-id) (read-response sslstream)
+	(unless (string= response-id id)
+	  (error "Received response to a different message(~a) than the one we sent(~a)."
+		 response-id id))
+	response-hash))))
+
+
+
+
 
 (defun test ()
   (let* ((usocket (usocket:socket-connect "transact.merchantprovider.com" 8444
 					  :element-type 'flexi-streams:octet))
-	 (socket (usocket:socket usocket))
-;;	 (f (setf (sb-bsd-sockets:non-blocking-mode socket) t))
 	 (sockstream (usocket:socket-stream usocket))
-	 (fd (cl+ssl:stream-fd sockstream))
 	 (sslstream (cl+ssl:make-ssl-client-stream
-		     fd :close-callback (lambda ()
+		     sockstream :close-callback (lambda ()
 					  (break "closing sockstream: ~a" sockstream)
 					  (close sockstream))))
 

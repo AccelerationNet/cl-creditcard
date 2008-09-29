@@ -17,8 +17,8 @@
     :components
     ((:module :src
 	      :components ((:file "packages")
-			   (:file "credit-card-api" :depends-on "packages")
-			   (:file "socket-messenger" :depends-on "packages")
+			   (:file "credit-card-api" :depends-on ("packages"))
+			   (:file "socket-messenger" :depends-on ("packages"))
 
 			   )))
     :depends-on (:cl+ssl :flexi-streams :usocket))

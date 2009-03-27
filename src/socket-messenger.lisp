@@ -48,15 +48,15 @@
 	(msghash (make-hash-table :test 'eq))
 	(buf))			       ;pointer to which one is active
     (flet ((finish-line ()
-	     (let ((*package* (find-package :keyword)) ;want to read in as a keyword
-		   (*read-eval* nil))	;just want to be safe(r)
-	       (let ((k (read-from-string (octets-to-string keybuf )))
-		     (v (octets-to-string valbuf )))
-		 (setf (gethash k msghash) v
-		       (fill-pointer keybuf) 0 ;reset the buffers.
-		       (fill-pointer valbuf) 0
-		       buf keybuf     ;reset the active buffer pointer
-		       )))))
+	     ;; We have now read one line that is a key=value pair,
+	     ;; translate and stick in hash.
+	     (let ((k (read-keyword-from-string (octets-to-string keybuf )))
+		   (v (octets-to-string valbuf )))
+	       (setf (gethash k msghash) v
+		     (fill-pointer keybuf) 0 ;reset the buffers.
+		     (fill-pointer valbuf) 0
+		     buf keybuf	      ;reset the active buffer pointer
+		     ))))
       ;; Gathering up the ID is pretty direct, just read till #\FS
       (loop for b = (read-byte sslstream)
 	 until (= b +FS+)

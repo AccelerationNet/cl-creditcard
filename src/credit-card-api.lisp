@@ -50,20 +50,33 @@ the luhn algorithm: http://en.wikipedia.org/wiki/Luhn_algorithm"))
 		    require-ccv
 		    error-p
 		    )
-  (:documenation "Check that a cc-data like structure has enough data to
+  "Check that a cc-data like structure has enough data to
 complete a transaction.
 Can optionally require that AVS verification, Card Verfication data be present.
 Can optionally signal an error if data isn't present.
 
-Some merchant accounts will incur extra fees if AVS isn't used."))
+Some merchant accounts will incur extra fees if AVS isn't used.")
 
 
 
 ;;;; Conditions
 
+(define-condition cc-error (error simple-condition)
+  ((user-message :initarg :user-message :accessor user-message :initform nil)
+   (verbiage :initarg :verbiage
+	     :accessor verbiage
+	     :documentation "human-interpretable response code
+            (meant for system display to clerk)"))
+  (:documentation "Requested errors when processing the credit will inherit
+from here. user-message, when supplied, should be a safe string to display to
+clients informing them of the error."))
 
+(define-condition deny-exception (cc-error)
+  ()
+  (:documentation "Error signalled when the CC is denied and error signalling
+ is requested."))
 
 ;;; example
-(let ((ccdata (gather-data-from-form))
-      (mp (make-instance 'monetra-processor)))
-  (sale mp ccdata 43))
+;(let ((ccdata (gather-data-from-form))
+;      (mp (make-instance 'monetra-processor)))
+;  (sale mp ccdata 43))

@@ -1,4 +1,4 @@
-(in-package :cl-monetra)
+(in-package :cl-creditcard)
 
 ;;;; Processor Functions
 
@@ -45,17 +45,17 @@ the type, so you can feed it any data structure that responds to these set of ac
   (:documentation "Check the credit-card number is valid looking based on
 the luhn algorithm: http://en.wikipedia.org/wiki/Luhn_algorithm"))
 
-(defun check-valid (cc-data &key
+(defgeneric enough-data-p (cc-data &key
 		    require-avs
 		    require-ccv
 		    error-p
 		    )
-  "Check that a cc-data like structure has enough data to
+  (:documentation "Check that a cc-data like structure has enough data to
 complete a transaction.
 Can optionally require that AVS verification, Card Verfication data be present.
 Can optionally signal an error if data isn't present.
 
-Some merchant accounts will incur extra fees if AVS isn't used.")
+Some merchant accounts will incur extra fees if AVS isn't used."))
 
 
 

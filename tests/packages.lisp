@@ -1,5 +1,5 @@
 
-(defpackage :cl-monetra-tests
-  (:documentation "Libarary for talking with")
-  (:use :lift :cl-monetra)
+(defpackage :cl-authorize-tests
+  (:documentation "Test Libarary for talking with Authorize.net")
+  (:use :common-lisp :lift :cl-creditcard)
   (:export ))

@@ -1,6 +1,6 @@
 (defpackage :cl-creditcard
     (:documentation "Library for charging credit cards.")
-  (:use :common-lisp)
+  (:use :common-lisp :iterate)
   (:nicknames :clcc)
   (:export
    ;;major functions
@@ -24,4 +24,4 @@
 |#
 
 (defpackage :cl-authorize-net
-    (:use :common-lisp :cl-creditcard))
+    (:use :common-lisp :cl-creditcard :iterate))

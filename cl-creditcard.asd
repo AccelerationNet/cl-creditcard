@@ -19,7 +19,7 @@
 	    :components ((:file "packages")
 			 (:file "credit-card-api" :depends-on ("packages"))
 			 )))
-  :depends-on ())
+  :depends-on (:iterate))
 
 (defsystem :cl-monetra
     :description "Talk to the Monetra Payment Processing Software."

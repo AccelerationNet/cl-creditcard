@@ -28,8 +28,8 @@ Some processors allow capturing a different amount than was originally authorize
 	    :documentation "The card number.")
    (expdate :initarg :expdate :accessor expdate :initform nil
 	    :documentation "The card expiration date")
-   (name :initarg :name :accessor name :initform nil
-	 :documentation "The cardholder's name as appears on card.")
+;   (name :initarg :name :accessor name :initform nil
+;	 :documentation "The cardholder's name as appears on card.")
    (ccv :initarg :ccv :accessor ccv :initform nil
        :documentation "Card [Code] Verification value. Usually 3-4 digits on back of card.")
    (address :initarg :address :accessor address :initform nil

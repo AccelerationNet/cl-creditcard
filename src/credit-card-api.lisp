@@ -61,7 +61,7 @@ Some merchant accounts will incur extra fees if AVS isn't used."))
 
 ;;;; Conditions
 
-(define-condition cc-error (error simple-condition)
+(define-condition cc-error (simple-error)
   ((user-message :initarg :user-message :accessor user-message :initform nil)
    (verbiage :initarg :verbiage
 	     :accessor verbiage

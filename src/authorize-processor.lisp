@@ -73,38 +73,41 @@
 
 
 (defun get-response-vars (s)
-  (let ((state :key) (idx 0) key)
-      (iter
-	(case state
-	  (:key (let ((newi (position #\= s :start idx)))
-		  (unless newi (finish))
-		  (setf
-		   key (subseq s idx newi)
-		   idx (+ 1 newi)
-		   state :open-encap)))
-	  (:open-encap
-	     (assert (char-equal (elt s idx) +encapsulater+))
-	     (incf idx)
-	     (setf state :value))
-	  (:value
-	     (let* ((newi idx))
-	       (iter (for end = (position +encapsulater+ s :start newi))
-		     (setf newi end)
-		     (while (char-equal #\\ (elt s (- end 1))))
-		     (finally (return end)))
-	       (collect (cons key (subseq s idx newi)))
-	       (setf state :delimiter idx (+ newi 1))))
-	  (:delimiter (setf state :key) (incf idx))))))
+  (when (or (null s) (= 0 (length s)))
+    (error 'cc-error
+	   :user-message "There was an error with the response from the credit card processor."
+	   :format-control "Response from server was 0 length."))
+  (let* ((flat-list (split-sequence:split-sequence +delimiter+ s))
+	 (len (length flat-list))
+	 (response (loop for v in flat-list
+			 for k in '(:response-code :response-subcode :response-reason-code
+				    :response-reason-text :authorization-code :avs-response
+				    :transaction-id :invoice-number :description
+				    :amount :method :transaction-type :customer-id )
+			 collect (cons k v))))
+    (when (>= len 38)
+      (push (cons :card-code-response (nth 38 flat-list)) response))))
 
 (defmethod process ((ap authorize-processor) params)
-  (let* ((s (drakma:http-request
-			 (post-url ap)
-			 :method :post :force-ssl T :parameters params
-			 ))
-	 (pairs (split-sequence:split-sequence )))
+  (multiple-value-bind (body status headers uri stream must-close reason-phrase)
+      (drakma:http-request (post-url ap)
+			   :method :post :force-ssl T :parameters params)
+    (declare (ignore headers uri stream must-close))
+    (unless (= status 200)
+      ;;It looks like the creditcard number isn't sent back, so we should be allright to
+      ;; include the body in the error.
+      (error 'cc-error
+	     :user-message "There was an error with the response from the credit card processor."
+	     :format-control "Server responded with a bad status: ~a ~a~%~a"
+	     :format-arguments status reason-phrase body))
     
-    
-    ))
+    (let* ((pairs (get-response-vars body))
+	   (response-code (cdr (assoc :response-code pairs))))
+      (cond ((and response-code (equal "1" response-code))
+	     (values (cdr (assoc :transaction-id pairs))
+		     pairs))
+	    ((and response-code (equal "3" response-code))
+	     (values nil pairs))))))
 
 (defmethod authorize ((ap authorize-processor)
 		      cc-data amount &key &allow-other-keys)

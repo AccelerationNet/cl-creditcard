@@ -24,4 +24,4 @@
 |#
 
 (defpackage :cl-authorize-net
-    (:use :common-lisp :cl-creditcard :iterate))
+    (:use :common-lisp :cl-creditcard))

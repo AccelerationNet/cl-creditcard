@@ -9,8 +9,9 @@
   (when (find-system 'asdf-system-connections nil)
     (asdf:operate 'asdf:load-op 'asdf-system-connections)))
 
-(defsystem :cl-creditcard
-  :description "Generic interace library for talking with credit card processors."
+
+(defsystem :cl-authorize-net
+  :description "Generic interace library for talking with authorize.net credit card processors."
   :author "<programmers@acceleration.net>"
   :licence "LLGPL http://opensource.franz.com/preamble.html (or talk to me)"
   :version "0.1"
@@ -19,30 +20,18 @@
 	    :serial T
 	    :components ((:file "packages")
 			 (:file "credit-card-api")
+			 (:file "authorize-processor")
 			 )))
-  :depends-on (:iterate))
+  :depends-on (:cl-creditcard :drakma))
 
-(defsystem :cl-monetra
-    :description "Talk to the Monetra Payment Processing Software."
-    :author "<programmers@acceleration.net>"
-    :licence "LLGPL http://opensource.franz.com/preamble.html (or talk to me)"
-    :version "0.1"
-    :components
-    ((:module :src
-	      :serial T
-	      :components ((:file "packages")
-			   (:file "credit-card-api")
-			   (:file "socket-messenger")
-			   )))
-    :depends-on (:cl-creditcard :cl+ssl :flexi-streams :usocket))
-
-(defsystem :cl-monetra-tests
-  :description "Talk to the Monetra Payment Processing Software. Test Suite."
+(defsystem :cl-authorize-net-tests
+  :description "Talk to the Authorize.net Payment Processing Software. Test Suite."
   :author "<programmers@acceleration.net>"
   :licence "LLGPL http://opensource.franz.com/preamble.html (or talk to me)"
   :version "0.1"
   :components
   ((:module :tests
-	    :components ((:file "socket-messenger-tests.lisp" )
+	    :components ((:file "packages")
+			 (:file "authorize" )
 			 )))
-  :depends-on (:cl-monetra :lift))
+  :depends-on (:cl-authorize-net :lift))

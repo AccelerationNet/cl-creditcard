@@ -2,24 +2,28 @@
 
 (defparameter +version+ "3.1")
 (defparameter +delimiter+ "|")
-(defparameter +encapsulater+ "\"")
-(defparameter +test-post-url+ "https://test.authorize.net:443/gateway/transact.dll")
+(defparameter +encapsulater+ "")
+(defparameter +test-post-url+ "https://test.authorize.net:443/gateway/transact.dll"
+  ;;Might need to be "https://certification.authorize.net/gateway/transact.dll"
+  )
 (defparameter +live-post-url+ "https://secure.authorize.net:443/gateway/transact.dll")
 
 (defclass authorize-processor ()
-  ((login :initarg :login :accessor login)
-   (trankey :initarg :trankey :accessor trankey)
+  ((login :initarg :login :accessor login )
+   (trankey :initarg :trankey :accessor trankey )
    (test-mode
     :accessor test-mode :initarg :test-mode :initform nil
-    :documentation "Whether or not we are testing, bool")
+    :documentation "Whether or not we are testing, bool, if set to :full we will also use the +test-post-url+ instead of the +live-post-url+")
    ))
 
 (defmethod post-url ((ap authorize-processor))
-  (if (test-mode ap) +test-post-url+ +live-post-url+))
+  (case (test-mode ap)
+    (:full +test-post-url+)
+    (T +live-post-url+)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter +authorize-slots+
-    '(first-name last-name company address city state zip country phone fax cust-id customer-ip)))
+    '(first-name last-name company address city state zip country phone fax cust-id customer-ip recurring-billing invoice-num)))
 
 (defclass authorize-data (cc-data)
   #.(mapcar (lambda (x)
@@ -35,29 +39,53 @@
 (defun slot-to-authorize-cons (data slot)
   (let ((it (funcall slot data)))
     (when it
-      (cons (munge-authorize-slot-name slot) it))))
+      (cons (munge-authorize-slot-name slot)
+	    (case slot
+	      (recurring-billing (bool-value it))
+	      (T it))))))
+
+(defparameter +transaction-type+
+  '((:auth .  "AUTH_ONLY")
+    (:capture-prior-auth .  "PRIOR_AUTH_CAPTURE")
+    (:sale . "AUTH_CAPTURE")
+    (:void . "VOID")
+    (:credit . "CREDIT")))
+(defun transaction-type (key)
+  (cdr (assoc key +transaction-type+)))
 
 (defmethod prebuild-post ((ap authorize-processor) cc-data type )
   (list
    (cons "x_version" +version+)
    (cons "x_delim_data" (bool-value T))
    (cons "x_delim_char" +delimiter+)
-   ;;(cons "x_encap_char" +encapsulater+)
-   (cons "x_type" type)
+   (cons "x_encap_char" +encapsulater+)
+   (cons "x_type" (typecase type
+		    (string type)
+		    (symbol (transaction-type type))))
    (cons "x_login" (login ap))
    (cons "x_tran_key" (trankey ap))
    (cons "x_relay_response" (bool-value nil))
    (cons "x_test_request" (bool-value (test-mode ap)))))
 
-(defmethod build-charge-post ((ap authorize-processor) cc-data type amount)
+(defmethod build-post ((ap authorize-processor) type &key cc-data amount transaction-id (include-cc T) &allow-other-keys)
   (flet ((slot-def (s) (slot-to-authorize-cons cc-data s)))
-    (append (prebuild-post ap cc-data type)
-	    (list (cons "x_amount" amount)
-		  (cons "x_card_num" (account cc-data))
-		  (cons "x_exp_date" (expdate cc-data))
-		  (cons "x_card_code" (ccv cc-data)))
-	    (mapcar #'slot-def +authorize-slots+)
-	    )))
+    (iter (for (k . v) in (append (prebuild-post ap cc-data type)
+				  (when amount
+				      (list (cons "x_amount" (etypecase amount
+							       (string amount)
+							       (number (format nil "~0,2F" amount))))))
+				  (when transaction-id
+				      (list (cons "x_trans_id" transaction-id)))
+				  (when (and include-cc cc-data)
+				    (append
+				     (when (ccv cc-data)
+				       (list (cons "x_card_code" (ccv cc-data))))
+				     (list (cons "x_card_num" (account cc-data))
+					   (cons "x_exp_date" (expdate cc-data))
+					   )))
+				  (mapcar #'slot-def +authorize-slots+)
+				  ))
+	  (collect (cons (princ-to-string k) (princ-to-string v))))))
 
 (defun args-to-query-string (alist)
   (format nil "~{~A~^&~}"
@@ -77,7 +105,7 @@
     (error 'cc-error
 	   :user-message "There was an error with the response from the credit card processor."
 	   :format-control "Response from server was 0 length."))
-  (let* ((flat-list (split-sequence:split-sequence +delimiter+ s))
+  (let* ((flat-list (split-sequence:split-sequence +delimiter+ s :test #'string=))
 	 (len (length flat-list))
 	 (response (loop for v in flat-list
 			 for k in '(:response-code :response-subcode :response-reason-code
@@ -88,11 +116,14 @@
     (when (>= len 38)
       (push (cons :card-code-response (nth 38 flat-list)) response))))
 
+(defun response-value (key r) 
+  (cdr (assoc key r)))
+
 (defmethod process ((ap authorize-processor) params)
   (multiple-value-bind (body status headers uri stream must-close reason-phrase)
       (drakma:http-request (post-url ap)
 			   :method :post :force-ssl T :parameters params)
-    (declare (ignore headers uri stream must-close))
+    (declare (ignore uri stream must-close headers))
     (unless (= status 200)
       ;;It looks like the creditcard number isn't sent back, so we should be allright to
       ;; include the body in the error.
@@ -102,24 +133,43 @@
 	     :format-arguments status reason-phrase body))
     
     (let* ((pairs (get-response-vars body))
-	   (response-code (cdr (assoc :response-code pairs))))
-      (cond ((and response-code (equal "1" response-code))
-	     (values (cdr (assoc :transaction-id pairs))
-		     pairs))
-	    ((and response-code (equal "3" response-code))
-	     (values nil pairs))))))
+	   (response-code (let ((*read-eval* nil)
+				(val (response-value :response-code pairs)))
+			    (when val (read-from-string val)))))
+      ;http://developer.authorize.net/guides/AIM/Transaction_Response/Response_Reason_Codes_and_Response_Reason_Text.htm
+      (values
+	(when response-code
+	  (case response-code
+	    (1 ;transaction approved
+	       (response-value :transaction-id pairs))
+	    (2 ;Transaction declined
+	       nil)
+	    (3 ;error processing transaction
+	       nil)
+	    (4 ;held for review
+	       nil)))
+	pairs))))
+
+
 
 (defmethod authorize ((ap authorize-processor)
 		      cc-data amount &key &allow-other-keys)
-  (let* ((post-args (build-charge-post ap cc-data "AUTH_ONLY" amount))
-	 (results (process ap post-args)))
-    results
-    ))
+  (let* ((post-args (build-post ap :auth :cc-data cc-data :amount amount)))
+    (process ap post-args)))
 
 (defmethod preauth-capture ((ap authorize-processor)
 			    transaction-id &key amount &allow-other-keys)
+  (let* ((post-args (build-post ap :capture-prior-auth :transaction-id transaction-id :amount amount)))
+    (process ap post-args))
+  )
+
+(defmethod sale ((ap authorize-processor) cc-data amount &key  &allow-other-keys)
+  (let* ((post-args (build-post ap :sale :cc-data cc-data :amount amount)))
+    (process ap post-args))
   )
 
 (defmethod void ((ap authorize-processor) transaction-id &key &allow-other-keys)
+  (let* ((post-args (build-post ap :void :transaction-id transaction-id)))
+    (process ap post-args))
   )
 

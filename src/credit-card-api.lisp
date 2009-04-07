@@ -20,6 +20,9 @@ Some processors allow capturing a different amount than was originally authorize
 (defgeneric void (processor transaction-id &key &allow-other-keys)
   (:documentation "Void a previous transaction."))
 
+(defgeneric credit (processor cc-data &key transaction-id amount &allow-other-keys )
+  (:documentation "Credit a charge, if transaction-id is present this is a credit against a precviouly charged authorization"))
+
 ;;;; Data Container and functions to validate it
 
 

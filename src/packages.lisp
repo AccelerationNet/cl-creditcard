@@ -13,7 +13,8 @@
    #:enough-data-p
    
    ;;exceptions
-   #:deny-exception 
+   #:deny-exception
+   #:test-mode
    ))
 
 #|
@@ -24,4 +25,23 @@
 |#
 
 (defpackage :cl-authorize-net
-    (:use :common-lisp :cl-creditcard))
+    (:use :common-lisp :cl-creditcard  :iterate)
+  (:export
+   ;;major functions
+   #:sale #:authorize #:preauth-capture #:void
+   
+   #:cc-data #:authorize-data :authorize-processor
+   #:test-mode
+   #:account #:expdate #:name #:ccv #:address #:zip
+
+   #:response-value
+   
+   #:luhn-check-p
+   #:enough-data-p
+   
+   ;;exceptions
+   #:deny-exception
+
+   ;;Extra data
+   #:first-name #:last-name #:company #:address #:city #:state #:zip #:country #:phone #:fax #:cust-id #:customer-ip #:recurring-billing #:invoice-num
+   ))

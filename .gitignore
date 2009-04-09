@@ -1,1 +1,8 @@
+.svn
+build
+dist
+Thumbs.db
+thumbs.db
+*~
+*#
 *.fasl

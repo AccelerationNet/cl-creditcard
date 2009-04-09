@@ -23,7 +23,7 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter +authorize-slots+
-    '(first-name last-name company address city state zip country phone fax cust-id customer-ip recurring-billing invoice-num)))
+    '(first-name last-name company address city state zip country phone fax cust-id customer-ip recurring-billing invoice-num description)))
 
 (defclass authorize-data (cc-data)
   #.(mapcar (lambda (x)
@@ -37,7 +37,7 @@
     (format nil "x_~a" name)))
 
 (defun slot-to-authorize-cons (data slot)
-  (let ((it (funcall slot data)))
+  (let ((it (ignore-errors (funcall slot data))))
     (when it
       (cons (munge-authorize-slot-name slot)
 	    (case slot

@@ -106,13 +106,6 @@
 		collect (format nil "~A=~A" k v))))
 
 
-
-(defmethod sale ((ap authorize-processor)
-		 cc-data amount &key &allow-other-keys)
-  
-  )
-
-
 (defun get-response-vars (s)
   (when (or (null s) (= 0 (length s)))
     (error 'cc-error

@@ -8,6 +8,11 @@
   )
 (defparameter +live-post-url+ "https://secure.authorize.net:443/gateway/transact.dll")
 
+(defvar *log-fn* ()
+  "A fn to send log messages to (lambda (msg &optional level ))
+ level will be an integer indicating its importance with 0 as debug/dribble and going up being
+ increasingly important")
+
 (defclass authorize-processor ()
   ((login :initarg :login :accessor login )
    (trankey :initarg :trankey :accessor trankey )
@@ -69,23 +74,31 @@
 
 (defmethod build-post ((ap authorize-processor) type &key cc-data amount transaction-id (include-cc T) &allow-other-keys)
   (flet ((slot-def (s) (slot-to-authorize-cons cc-data s)))
-    (iter (for (k . v) in (append (prebuild-post ap cc-data type)
-				  (when amount
-				      (list (cons "x_amount" (etypecase amount
-							       (string amount)
-							       (number (format nil "~0,2F" amount))))))
-				  (when transaction-id
-				      (list (cons "x_trans_id" transaction-id)))
-				  (when (and include-cc cc-data)
-				    (append
-				     (when (ccv cc-data)
-				       (list (cons "x_card_code" (ccv cc-data))))
-				     (list (cons "x_card_num" (account cc-data))
-					   (cons "x_exp_date" (expdate cc-data))
-					   )))
-				  (mapcar #'slot-def +authorize-slots+)
-				  ))
-	  (collect (cons (princ-to-string k) (princ-to-string v))))))
+    (let ((rtn
+	   (iter (for (k . v) in (append (prebuild-post ap cc-data type)
+					 (when amount
+					   (list (cons "x_amount" (etypecase amount
+								    (string amount)
+								    (number (format nil "~0,2F" amount))))))
+					 (when transaction-id
+					   (list (cons "x_trans_id" transaction-id)))
+					 (when (and include-cc cc-data)
+					   (append
+					    (when (ccv cc-data)
+					      (list (cons "x_card_code" (ccv cc-data))))
+					    (list (cons "x_card_num" (account cc-data))
+						  (cons "x_exp_date" (expdate cc-data))
+						  )))
+					 (mapcar #'slot-def +authorize-slots+)
+					 ))
+		 (when (and k v)
+		   (collect (cons (princ-to-string k) (princ-to-string v)))))))
+      (when *log-fn*
+	(funcall *log-fn*
+		 (format nil "cl-authorize-net:build-post, reslts: ~s" rtn)
+		 0))
+      rtn
+      )))
 
 (defun args-to-query-string (alist)
   (format nil "~{~A~^&~}"

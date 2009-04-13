@@ -95,7 +95,7 @@
 		   (collect (cons (princ-to-string k) (princ-to-string v)))))))
       (when *log-fn*
 	(funcall *log-fn*
-		 (format nil "cl-authorize-net:build-post, reslts: ~s" rtn)
+		 (format nil "cl-authorize-net:build-post, results: ~s" rtn)
 		 0))
       rtn
       )))
@@ -120,7 +120,12 @@
 				    :amount :method :transaction-type :customer-id )
 			 collect (cons k v))))
     (when (>= len 38)
-      (push (cons :card-code-response (nth 38 flat-list)) response))))
+      (push (cons :card-code-response (nth 38 flat-list)) response))
+    (when *log-fn*
+      (funcall *log-fn*
+	       (format nil "cl-authorize-net:get-response-vars, results: ~s" response)
+	       0))
+    response))
 
 (defun response-value (key r) 
   (cdr (assoc key r)))

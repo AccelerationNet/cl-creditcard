@@ -43,5 +43,5 @@
    #:deny-exception
 
    ;;Extra data
-   #:first-name #:last-name #:company #:address #:city #:state #:zip #:country #:phone #:fax #:cust-id #:customer-ip #:recurring-billing #:invoice-num
+   #:first-name #:last-name #:company #:address #:city #:email #:state #:zip #:country #:phone #:fax #:cust-id #:customer-ip #:recurring-billing #:invoice-num
    ))

@@ -28,7 +28,7 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter +authorize-slots+
-    '(first-name last-name company address city state zip country phone fax cust-id customer-ip recurring-billing invoice-num description)))
+    '(first-name last-name company email address city state zip country phone fax cust-id customer-ip recurring-billing invoice-num description)))
 
 (defclass authorize-data (cc-data)
   #.(mapcar (lambda (x)
@@ -94,9 +94,16 @@
 		 (when (and k v)
 		   (collect (cons (princ-to-string k) (princ-to-string v)))))))
       (when *log-fn*
-	(funcall *log-fn*
-		 (format nil "cl-authorize-net:build-post, results: ~s" rtn)
-		 0))
+	(ignore-errors
+	  (funcall *log-fn*
+		   ;;; dont log sensitive info
+		   (let* ((val (copy-list rtn))
+			  (cc (find "x_card_num" val :key #'car :test #'string-equal ))
+			  (ccv (find "x_card_code" val :key #'car :test #'string-equal )))
+		     (when cc (setf (cdr cc) (format nil "#############~a" (subseq (cdr cc) (- (length (cdr cc)) 4)))))
+		     (when ccv (setf (cdr ccv) "HIDDEN-CCV"))
+		     (format nil "cl-authorize-net:build-post, results: ~s" val))
+		   0)))
       rtn
       )))
 

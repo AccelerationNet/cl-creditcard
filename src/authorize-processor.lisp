@@ -13,6 +13,9 @@
  level will be an integer indicating its importance with 0 as debug/dribble and going up being
  increasingly important")
 
+(defvar *processor* nil
+  "A variable to be bound to a processor for internal use")
+
 (defclass authorize-processor ()
   ((login :initarg :login :accessor login )
    (trankey :initarg :trankey :accessor trankey )
@@ -136,9 +139,6 @@
 
 (defun response-value (key r) 
   (cdr (assoc key r)))
-
-(defvar *processor* nil
-  "A variable to be bound to a processor for internal use")
 
 (defmethod process ((ap authorize-processor) params)  
   (multiple-value-bind (body status headers uri stream must-close reason-phrase)

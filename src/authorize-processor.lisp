@@ -97,7 +97,7 @@
 	(ignore-errors
 	  (funcall *log-fn*
 		   ;;; dont log sensitive info
-		   (let* ((val (copy-list rtn))
+		   (let* ((val (copy-alist rtn))
 			  (cc (find "x_card_num" val :key #'car :test #'string-equal ))
 			  (ccv (find "x_card_code" val :key #'car :test #'string-equal )))
 		     (when cc (setf (cdr cc) (format nil "#############~a" (subseq (cdr cc) (- (length (cdr cc)) 4)))))
@@ -130,14 +130,17 @@
       (push (cons :card-code-response (nth 38 flat-list)) response))
     (when *log-fn*
       (funcall *log-fn*
-	       (format nil "cl-authorize-net:get-response-vars, results: ~s" response)
+	       (format nil "cl-authorize-net:get-response-vars from:~a,~%results: ~s" (post-url *processor*) response)
 	       0))
     response))
 
 (defun response-value (key r) 
   (cdr (assoc key r)))
 
-(defmethod process ((ap authorize-processor) params)
+(defvar *processor* nil
+  "A variable to be bound to a processor for internal use")
+
+(defmethod process ((ap authorize-processor) params)  
   (multiple-value-bind (body status headers uri stream must-close reason-phrase)
       (drakma:http-request (post-url ap)
 			   :method :post :force-ssl T :parameters params)
@@ -172,22 +175,26 @@
 
 (defmethod authorize ((ap authorize-processor)
 		      cc-data amount &key &allow-other-keys)
-  (let* ((post-args (build-post ap :auth :cc-data cc-data :amount amount)))
+  (let* ((*processor* ap)
+	 (post-args (build-post ap :auth :cc-data cc-data :amount amount)))
     (process ap post-args)))
 
 (defmethod preauth-capture ((ap authorize-processor)
 			    transaction-id &key amount &allow-other-keys)
-  (let* ((post-args (build-post ap :capture-prior-auth :transaction-id transaction-id :amount amount)))
+  (let* ((*processor* ap)
+	 (post-args (build-post ap :capture-prior-auth :transaction-id transaction-id :amount amount)))
     (process ap post-args))
   )
 
 (defmethod sale ((ap authorize-processor) cc-data amount &key  &allow-other-keys)
-  (let* ((post-args (build-post ap :sale :cc-data cc-data :amount amount)))
+  (let* ((*processor* ap)
+	 (post-args (build-post ap :sale :cc-data cc-data :amount amount)))
     (process ap post-args))
   )
 
 (defmethod void ((ap authorize-processor) transaction-id &key &allow-other-keys)
-  (let* ((post-args (build-post ap :void :transaction-id transaction-id)))
+  (let* ((*processor* ap)
+	 (post-args (build-post ap :void :transaction-id transaction-id)))
     (process ap post-args))
   )
 

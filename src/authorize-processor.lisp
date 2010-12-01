@@ -8,6 +8,16 @@
   )
 (defparameter +live-post-url+ "https://secure.authorize.net:443/gateway/transact.dll")
 
+
+(defvar *expected-result* :unbound
+  "a variable for use in testing that will bypass the process function and
+   return the expected result directly
+
+   If a function, returns the results of running that function
+   (allows for multiple values)
+
+  ")
+
 (defvar *log-fn* ()
   "A fn to send log messages to (lambda (msg &optional level ))
  level will be an integer indicating its importance with 0 as debug/dribble and going up being
@@ -171,28 +181,36 @@
 	       nil)))
 	pairs))))
 
-
+(defmacro possibly-return-expected-result (tag)
+  `(when (not (eql :unbound *expected-result*))
+     (return-from ,tag (typecase *expected-result*
+			 (function (funcall *expected-result*))
+			 (T *expected-result*)))))
 
 (defmethod authorize ((ap authorize-processor)
 		      cc-data amount &key &allow-other-keys)
+  (possibly-return-expected-result authorize)
   (let* ((*processor* ap)
 	 (post-args (build-post ap :auth :cc-data cc-data :amount amount)))
     (process ap post-args)))
 
 (defmethod preauth-capture ((ap authorize-processor)
 			    transaction-id &key amount &allow-other-keys)
+  (possibly-return-expected-result preauth-capture)
   (let* ((*processor* ap)
 	 (post-args (build-post ap :capture-prior-auth :transaction-id transaction-id :amount amount)))
     (process ap post-args))
   )
 
 (defmethod sale ((ap authorize-processor) cc-data amount &key  &allow-other-keys)
+  (possibly-return-expected-result sale)
   (let* ((*processor* ap)
 	 (post-args (build-post ap :sale :cc-data cc-data :amount amount)))
     (process ap post-args))
   )
 
 (defmethod void ((ap authorize-processor) transaction-id &key &allow-other-keys)
+  (possibly-return-expected-result void)
   (let* ((*processor* ap)
 	 (post-args (build-post ap :void :transaction-id transaction-id)))
     (process ap post-args))

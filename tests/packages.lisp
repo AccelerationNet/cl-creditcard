@@ -1,7 +1,7 @@
 
 (defpackage :cl-authorize-tests
   (:documentation "Test Libarary for talking with Authorize.net")
-  (:use :common-lisp :lift :cl-creditcard :cl-authorize-net)
+  (:use :common-lisp :cl-creditcard :cl-authorize-net :iterate :lisp-unit)
   (:export ))
 
 (with-package-iterator (sym '(:cl-authorize-net) :internal)

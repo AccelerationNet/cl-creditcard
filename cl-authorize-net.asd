@@ -34,4 +34,4 @@
 	    :components ((:file "packages")
 			 (:file "authorize" )
 			 )))
-  :depends-on (:cl-authorize-net :lift))
+  :depends-on (:cl-authorize-net :lisp-unit))

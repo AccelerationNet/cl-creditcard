@@ -1,6 +1,14 @@
 (in-package :cl-authorize-tests)
 
-(deftestsuite cl-authorize-tests () ())
+(with-package-iterator (sym '(:cl-authorize-net) :internal :external)
+  (iter (multiple-value-bind (more? symbol accessibility pkg) (sym)
+	  (declare (ignore accessibility))
+	  (when (eql (find-package :cl-authorize-net)
+		     pkg)
+	    (ignore-errors
+	      (unintern symbol :cl-authorize-tests)
+	      (import (list symbol) :cl-authorize-tests)))
+	  (while more?))))
 
 (defun test-authorize-processor ()
   (make-instance 'authorize-processor :login "cnpdev4289" :trankey "SR2P8g4jdEn7vFLQ" :test-mode :full))
@@ -26,58 +34,32 @@
    (cons "x_test_request" (cl-authorize-net::bool-value T))))
 
 
+(define-test test-prepare-args
+  (assert-equal "x_version=3.1&x_delim_data=TRUE&x_delim_char=|&x_type=test&x_login=testlogin&x_tran_key=testtrankey&x_amount=1.00&x_card_num=4111111111111111&x_exp_date=01/11&x_card_code=000&x_test_request=TRUE"
+		(args-to-query-string +authorize-test-alist+)
+		"The fake args should turn into a query string style string"	
+		))
 
-(addtest (cl-authorize-tests)
-  test-prepare-args
-  (ensure-same
-   (args-to-query-string +authorize-test-alist+)
-   "x_version=3.1&x_delim_data=TRUE&x_delim_char=|&x_type=test&x_login=testlogin&x_tran_key=testtrankey&x_amount=1.00&x_card_num=4111111111111111&x_exp_date=01/11&x_card_code=000&x_test_request=TRUE")
-  :report "The fake args should turn into a query string style string"
-  )
-
-
-(addtest (cl-authorize-tests)
-  test-authorize
-  (let* ((processor (test-authorize-processor))
-	(data (make-test-cc-date))
-	)
+(define-test test-authorize
+  (let ((processor (test-authorize-processor))
+	(data (make-test-cc-date)))
     (multiple-value-bind (tranid pairs) (authorize processor data "1.00")
-      (ensure-same tranid "0" :Test #'string=
-		   :report "The test should authorize and return a transaction code of 0")
-      (ensure-same (response-value :amount pairs)  "1.00"  :Test #'string=
-		   :report "The test should authorize an amount of 1$ which is what we passed"))
-    (multiple-value-bind (tranid pairs) (authorize processor data "2.00")
-      ;(break "Decline? ~a ~a" tranid pairs)
-      (ensure-same tranid nil 
-		   :report "This should be a decline")
-      (ensure-same (response-value :amount pairs) "2.00"  :Test #'string=
-		   :report "The test should decline to authorize an amount of 2$ which is what we passed") 
-    )))
+      (assert-equal "0" tranid
+		    "The test should authorize and return a transaction code of 0")
+      (assert-equal "1.00"  (response-value :amount pairs)
+		    "The test should authorize an amount of 1$ which is what we passed"))
+    (multiple-value-bind (tranid pairs) (authorize processor data "2.00")      
+      (assert-false tranid "This should be a decline")
+      (assert-equal "2.00" (response-value :amount pairs)
+		    "The test should decline to authorize an amount of 2$ which is what we passed") 
+      )))
 
-(addtest (cl-authorize-tests)
-  test-sale
-  (let* ((processor (test-authorize-processor))
-	(data (make-test-cc-date))
-	)
+(define-test test-sale
+  (let ((processor (test-authorize-processor))
+	(data (make-test-cc-date)))
     (multiple-value-bind (tranid pairs) (sale processor data "1.00")
-      (ensure-same tranid "0" :Test #'string=
-		   :report "The test should authorize and return a transaction code of 0")
-      (ensure-same (response-value :amount pairs)  "1.00"  :Test #'string=
-		   :report "The test should authorize an amount of 1$ which is what we passed"))
-
-    
-    ))
-  
-
-(addtest (cl-authorize-tests)
-  test-void
-  (let* ((processor (test-authorize-processor))
-	 (data (make-test-cc-date)))
-    (multiple-value-bind (tranid pairs) (sale processor data "1.00")
-      (ensure-same tranid "0" :Test #'string=
-		   :report "The test should authorize and return a transaction code of 0")
-      (ensure-same (response-value :amount pairs)  "1.00"  :Test #'string=
-		   :report "The test should authorize an amount of 1$ which is what we passed"))
-
-    
+      (assert-equal "0" tranid
+		    "The test should authorize and return a transaction code of 0")
+      (assert-equal "1.00"  (response-value :amount pairs)
+		    "The test should authorize an amount of 1$ which is what we passed"))
     ))

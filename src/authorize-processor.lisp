@@ -152,10 +152,10 @@
 	    (post-url *processor*) response)
     response))
 
-(defun response-value (key r) 
+(defun response-value (key r)
   (cdr (assoc key r)))
 
-(defmethod process ((ap authorize-processor) params)  
+(defmethod process ((ap authorize-processor) params)
   (multiple-value-bind (body status headers uri stream must-close reason-phrase)
       (drakma:http-request (post-url ap)
 			   :method :post :force-ssl T :parameters params)
@@ -167,7 +167,7 @@
 	     :user-message "There was an error with the response from the credit card processor."
 	     :format-control "Server responded with a bad status: ~a ~a~%~a"
 	     :format-arguments status reason-phrase body))
-    
+
     (let* ((pairs (get-response-vars body))
 	   (response-code (let ((*read-eval* nil)
 				(val (response-value :response-code pairs)))

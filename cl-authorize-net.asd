@@ -21,6 +21,7 @@
 	    :components ((:file "packages")
 			 (:file "credit-card-api")
 			 (:file "authorize-processor")
+			 (:file "authorize-echeck")
 			 )))
   :depends-on (:cl-creditcard :drakma))
 

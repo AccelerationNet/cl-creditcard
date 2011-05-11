@@ -48,8 +48,7 @@
 (define-test test-prepare-args
   (assert-equal "x_version=3.1&x_delim_data=TRUE&x_delim_char=|&x_type=test&x_login=testlogin&x_tran_key=testtrankey&x_amount=1.00&x_card_num=4111111111111111&x_exp_date=01/11&x_card_code=000&x_test_request=TRUE"
 		(args-to-query-string +authorize-test-alist+)
-		"The fake args should turn into a query string style string"
-		))
+		"The fake args should turn into a query string style string"))
 
 (define-test test-authorize
   (let ((processor (test-authorize-processor))
@@ -62,8 +61,7 @@
     (multiple-value-bind (tranid pairs) (authorize processor data "2.00")
       (assert-false tranid "This should be a decline")
       (assert-equal "2.00" (response-value :amount pairs)
-		    "The test should decline to authorize an amount of 2$ which is what we passed")
-      )))
+		    "The test should decline to authorize an amount of 2$ which is what we passed"))))
 
 (define-test test-sale
   (let ((processor (test-authorize-processor))
@@ -72,8 +70,7 @@
       (assert-equal "0" tranid
 		    "The test should authorize and return a transaction code of 0")
       (assert-equal "1.00"  (response-value :amount pairs)
-		    "The test should authorize an amount of 1$ which is what we passed"))
-    ))
+		    "The test should authorize an amount of 1$ which is what we passed"))))
 
 (define-test echeck-constraints
   (let ((valid-data (make-instance 'echeck-data
@@ -99,15 +96,11 @@
 					    :bank-name bank-name
 					    :bank-acct-name bank-acct-name
 					    :echeck-type echeck-type)
-			     "should only allow valid data" what-were-testing val)
-	       
-	       
-	       )
+			     "should only allow valid data" what-were-testing val))
 	     (assert-bad-values (initarg &rest bad-values)
 	       (dolist (bad bad-values)
 		 (apply #'assert-invalid (list initarg bad initarg bad)))))
 
-    
       (assert-bad-values :bank-acct-type "bad" nil "CHECKING " "")
       (assert-bad-values :bank-aba-code "bad" nil 5 ""
 			 "1234567890" ;;too long
@@ -122,15 +115,8 @@
       (assert-bad-values :bank-name 5 nil ""
 			 "testingtestingtestingtestingtestingtestingtesting!!" ;; too long
 			 )
+
       (assert-bad-values :bank-acct-name 5 nil ""
 			 "testingtestingtestingtestingtestingtestingtesting!!" ;; too long
 			 )
-      (assert-bad-values :echeck-type 5 nil "" "asdf" "ARC" "BOC" "TEL")
-      
-      )
-    )
-    
-    
-  
-	     
-  )
+      (assert-bad-values :echeck-type 5 nil "" "asdf" "ARC" "BOC" "TEL"))))

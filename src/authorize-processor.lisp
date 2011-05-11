@@ -62,7 +62,7 @@
 (defparameter +supported-echeck-types+ '("CCD" "PPD" "WEB")
   "The valid values for echeck-type")
 
-(defun length-between-p (string low high)  
+(defun length-between-p (string low high)
   (and string (stringp string)
        (<= low (length string) high)))
 
@@ -113,8 +113,7 @@ Must be one of +echeck-types+.  Defaults to WEB")
     (signal 'invalid-echeck-data "bad echeck-type" :echeck-data self))
   (unless (and (stringp (echeck-type self))
 	       (member (echeck-type self) +supported-echeck-types+ :test #'string=))
-    (signal 'invalid-echeck-data "unsupported echeck-type" :echeck-data self))
-  )
+    (signal 'invalid-echeck-data "unsupported echeck-type" :echeck-data self)))
 
 (defun bool-value (x) (if x "TRUE" "FALSE"))
 

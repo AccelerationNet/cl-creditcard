@@ -34,6 +34,17 @@
    (cons "x_test_request" (cl-authorize-net::bool-value T))))
 
 
+(define-test log-test
+  (let* ((i 0)
+	 (*log-fn* #'(lambda (category msg-fn)
+		       (assert-eq :debug category)
+		       (assert-eq 0 i "should not have evaluated any code yet")
+		       (assert-equal "foo 0" (funcall msg-fn))
+		       )))
+    (log-it :debug "foo 0")
+    (log-it :debug "foo ~d" i)
+    (log-it :debug (progn (incf i) "foo 0"))))
+
 (define-test test-prepare-args
   (assert-equal "x_version=3.1&x_delim_data=TRUE&x_delim_char=|&x_type=test&x_login=testlogin&x_tran_key=testtrankey&x_amount=1.00&x_card_num=4111111111111111&x_exp_date=01/11&x_card_code=000&x_test_request=TRUE"
 		(args-to-query-string +authorize-test-alist+)

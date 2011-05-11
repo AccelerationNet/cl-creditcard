@@ -19,9 +19,15 @@
   ")
 
 (defvar *log-fn* ()
-  "A fn to send log messages to (lambda (msg &optional level ))
- level will be an integer indicating its importance with 0 as debug/dribble and going up being
- increasingly important")
+  "A fn to send log messages to, must conform to: (lambda (category msg-fn)).
+ * category will be one of: '(:debug, :info, :warn, :error, :fatal)
+ * msg-fn is a lambda that generates the actual message")
+
+(defmacro log-it (category format-string &rest args)
+  `(when *log-fn*
+     (ignore-errors
+       (funcall *log-fn* ,category
+		#'(lambda () (format nil ,format-string ,@args) )))))
 
 (defvar *processor* nil
   "A variable to be bound to a processor for internal use")
@@ -106,17 +112,17 @@
 					 ))
 		 (when (and k v)
 		   (collect (cons (princ-to-string k) (princ-to-string v)))))))
-      (when *log-fn*
-	(ignore-errors
-	  (funcall *log-fn*
-		   ;;; dont log sensitive info
-		   (let* ((val (copy-alist rtn))
-			  (cc (find "x_card_num" val :key #'car :test #'string-equal ))
-			  (ccv (find "x_card_code" val :key #'car :test #'string-equal )))
-		     (when cc (setf (cdr cc) (format nil "#############~a" (subseq (cdr cc) (- (length (cdr cc)) 4)))))
-		     (when ccv (setf (cdr ccv) "HIDDEN-CCV"))
-		     (format nil "cl-authorize-net:build-post, results: ~s" val))
-		   0)))
+      (log-it :debug
+	      "cl-authorize-net:build-post, results: ~s"
+	      ;;; dont log sensitive info
+	      (let* ((val (copy-alist rtn))
+		     (cc (find "x_card_num" val :key #'car :test #'string-equal ))
+		     (ccv (find "x_card_code" val :key #'car :test #'string-equal )))
+		(when cc
+		  (setf (cdr cc) (format nil "#############~a"
+					 (subseq (cdr cc) (- (length (cdr cc)) 4)))))
+		(when ccv (setf (cdr ccv) "HIDDEN-CCV"))
+		val))
       rtn
       )))
 
@@ -141,10 +147,9 @@
 			 collect (cons k v))))
     (when (>= len 38)
       (push (cons :card-code-response (nth 38 flat-list)) response))
-    (when *log-fn*
-      (funcall *log-fn*
-	       (format nil "cl-authorize-net:get-response-vars from:~a,~%results: ~s" (post-url *processor*) response)
-	       0))
+    (log-it :debug
+	    "cl-authorize-net:get-response-vars from:~a,~%results: ~s"
+	    (post-url *processor*) response)
     response))
 
 (defun response-value (key r) 

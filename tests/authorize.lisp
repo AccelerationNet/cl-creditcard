@@ -88,14 +88,17 @@
 						(bank-acct-type (bank-acct-type valid-data))
 						(bank-acct-num (bank-acct-num valid-data))
 						(bank-name (bank-name valid-data))
-						(bank-acct-name (bank-acct-name valid-data)))
+						(bank-acct-name (bank-acct-name valid-data))
+						(echeck-type (echeck-type valid-data))
+						)
 	       (assert-error 'invalid-echeck-data
 			     (make-instance 'echeck-data
 					    :bank-aba-code bank-aba-code
 					    :bank-acct-type bank-acct-type
 					    :bank-acct-num bank-acct-num
 					    :bank-name bank-name
-					    :bank-acct-name bank-acct-name)
+					    :bank-acct-name bank-acct-name
+					    :echeck-type echeck-type)
 			     "should only allow valid data" what-were-testing val)
 	       
 	       
@@ -116,14 +119,14 @@
 			 "a2345678901234567890" ;; right length, non-numeric
 			 )
 
-      (assert-bad-values :bank-name 5 nil
-			 ""
+      (assert-bad-values :bank-name 5 nil ""
 			 "testingtestingtestingtestingtestingtestingtesting!!" ;; too long
 			 )
-      (assert-bad-values :bank-acct-name 5 nil
-			 ""
+      (assert-bad-values :bank-acct-name 5 nil ""
 			 "testingtestingtestingtestingtestingtestingtesting!!" ;; too long
 			 )
+      (assert-bad-values :echeck-type 5 nil "" "asdf" "ARC" "BOC" "TEL")
+      
       )
     )
     

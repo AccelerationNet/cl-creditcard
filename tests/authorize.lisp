@@ -13,7 +13,7 @@
 (defun test-authorize-processor ()
   (make-instance 'authorize-processor :login "cnpdev4289" :trankey "SR2P8g4jdEn7vFLQ" :test-mode :full))
 
-(defun make-test-cc-date ()
+(defun make-test-cc-data ()
   (make-instance 'authorize-data :account "4222222222222" :expdate "01/11"))
 
 (defparameter +authorize-test-alist+
@@ -58,7 +58,7 @@
 (define-test test-authorize
   (with-logging
     (let ((processor (test-authorize-processor))
-	  (data (make-test-cc-date)))
+	  (data (make-test-cc-data)))
       (multiple-value-bind (tranid pairs) (authorize processor data "1.00")
 	(assert-equal "0" tranid
 		      "The test should authorize and return a transaction code of 0")
@@ -72,12 +72,58 @@
 (define-test test-sale
   (with-logging 
     (let ((processor (test-authorize-processor))
-	  (data (make-test-cc-date)))
+	  (data (make-test-cc-data)))
       (multiple-value-bind (tranid pairs) (sale processor data "1.00")
 	(assert-equal "0" tranid
 		      "The test should authorize and return a transaction code of 0")
 	(assert-equal "1.00"  (response-value :amount pairs)
 		      "The test should authorize an amount of 1$ which is what we passed")))))
+
+(define-test test-build-post
+  (with-logging
+    (let* ((processor (test-authorize-processor))
+	   (data (make-test-cc-data))
+	   (ccv-data (make-test-cc-data)))
+      (setf (ccv ccv-data) "000")
+      (assert-true  (set-equal
+		     '(("x_version" . "3.1") ("x_delim_data" . "TRUE") ("x_delim_char" . "|")
+		      ("x_encap_char" . "") ("x_type" . "AUTH_ONLY")
+		      ("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
+		      ("x_relay_response" . "FALSE") ("x_test_request" . "TRUE")
+		      ("x_amount" . "1.00") ("x_card_num" . "4222222222222")
+		      ("x_exp_date" . "01/11"))
+		    (build-post processor :auth :cc-data data :amount 1)
+		    :test #'equalp)
+		    )
+      (assert-true  (set-equal
+		     '(("x_version" . "3.1") ("x_delim_data" . "TRUE") ("x_delim_char" . "|")
+		      ("x_encap_char" . "") ("x_type" . "AUTH_ONLY")
+		      ("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
+		      ("x_relay_response" . "FALSE") ("x_test_request" . "TRUE")
+		      ("x_amount" . "1.00") ("x_card_code" . "000")
+		      ("x_card_num" . "4222222222222")
+		      ("x_exp_date" . "01/11"))
+		     (build-post processor :auth :cc-data ccv-data :amount 1)
+		    :test #'equalp))
+      (assert-true (set-equal '(("x_version" . "3.1") ("x_delim_data" . "TRUE") ("x_delim_char" . "|")
+		      ("x_encap_char" . "") ("x_type" . "AUTH_ONLY")
+		      ("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
+		      ("x_relay_response" . "FALSE") ("x_test_request" . "TRUE")
+		      ("x_amount" . "1.00"))
+		    (build-post processor :auth :cc-data data :amount 1 :include-cc nil)
+		    :test #'equalp)
+		    )
+      (assert-true (set-equal '(("x_version" . "3.1") ("x_delim_data" . "TRUE") ("x_delim_char" . "|")
+		      ("x_encap_char" . "") ("x_type" . "AUTH_ONLY")
+		      ("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
+		      ("x_relay_response" . "FALSE") ("x_test_request" . "TRUE")
+		      ("x_amount" . "1.00"))
+		    (build-post processor :auth :cc-data ccv-data :amount 1 :include-cc nil)
+		    :test #'equalp)
+		    )
+      )
+    )
+  )
 
 (define-test echeck-constraints
   (let ((valid-data (make-instance 'echeck-data

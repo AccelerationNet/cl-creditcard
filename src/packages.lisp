@@ -26,6 +26,7 @@
 
 (defpackage :cl-authorize-net
     (:use :common-lisp :cl-creditcard  :iterate)
+  (:shadowing-import-from #:alexandria #:ensure-gethash #:hash-table-alist #:copy-hash-table #:when-let)
   (:export
    ;;major functions
    #:sale #:authorize #:preauth-capture #:void

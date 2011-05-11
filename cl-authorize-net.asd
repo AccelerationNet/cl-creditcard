@@ -23,7 +23,7 @@
 			 (:file "authorize-processor")
 			 (:file "authorize-echeck")
 			 )))
-  :depends-on (:cl-creditcard :drakma))
+  :depends-on (:cl-creditcard :drakma :alexandria))
 
 (defsystem :cl-authorize-net-tests
   :description "Talk to the Authorize.net Payment Processing Software. Test Suite."
@@ -35,4 +35,4 @@
 	    :components ((:file "packages")
 			 (:file "authorize" )
 			 )))
-  :depends-on (:cl-authorize-net :lisp-unit))
+  :depends-on (:cl-authorize-net :lisp-unit :alexandria))

@@ -78,53 +78,55 @@
   (cdr (assoc key +transaction-type+)))
 
 (defmethod prebuild-post ((ap authorize-processor) cc-data type )
-  (list
-   (cons "x_version" +version+)
-   (cons "x_delim_data" (bool-value T))
-   (cons "x_delim_char" +delimiter+)
-   (cons "x_encap_char" +encapsulater+)
-   (cons "x_type" (typecase type
-		    (string type)
-		    (symbol (transaction-type type))))
-   (cons "x_login" (login ap))
-   (cons "x_tran_key" (trankey ap))
-   (cons "x_relay_response" (bool-value nil))
-   (cons "x_test_request" (bool-value (test-mode ap)))))
+  "returns a hashtable of post parameters"
+  (let ((params (make-hash-table :test 'equalp)))
+    (flet ((param (k v) (ensure-gethash k params v)))      
+       (param "x_version" +version+)
+       (param "x_delim_data" (bool-value T))
+       (param "x_delim_char" +delimiter+)
+       (param "x_encap_char" +encapsulater+)
+       (param "x_type" (typecase type
+			(string type)
+			(symbol (transaction-type type))))
+       (param "x_login" (login ap))
+       (param "x_tran_key" (trankey ap))
+       (param "x_relay_response" (bool-value nil))
+       (param "x_test_request" (bool-value (test-mode ap))))
+    params))
 
 (defmethod build-post ((ap authorize-processor) type &key cc-data amount transaction-id (include-cc T) &allow-other-keys)
-  (flet ((slot-def (s) (slot-to-authorize-cons cc-data s)))
-    (let ((rtn
-	   (iter (for (k . v) in (append (prebuild-post ap cc-data type)
-					 (when amount
-					   (list (cons "x_amount" (etypecase amount
-								    (string amount)
-								    (number (format nil "~0,2F" amount))))))
-					 (when transaction-id
-					   (list (cons "x_trans_id" transaction-id)))
-					 (when (and include-cc cc-data)
-					   (append
-					    (when (ccv cc-data)
-					      (list (cons "x_card_code" (ccv cc-data))))
-					    (list (cons "x_card_num" (account cc-data))
-						  (cons "x_exp_date" (expdate cc-data))
-						  )))
-					 (mapcar #'slot-def +authorize-slots+)
-					 ))
-		 (when (and k v)
-		   (collect (cons (princ-to-string k) (princ-to-string v)))))))
-      (log-it :debug
-	      "cl-authorize-net:build-post, results: ~s"
-	      ;;; dont log sensitive info
-	      (let* ((val (copy-alist rtn))
-		     (cc (find "x_card_num" val :key #'car :test #'string-equal ))
-		     (ccv (find "x_card_code" val :key #'car :test #'string-equal )))
-		(when cc
-		  (setf (cdr cc) (format nil "#############~a"
-					 (subseq (cdr cc) (- (length (cdr cc)) 4)))))
-		(when ccv (setf (cdr ccv) "HIDDEN-CCV"))
-		val))
-      rtn
-      )))
+  "returns an alist of strings"
+  (let ((params (prebuild-post ap cc-data type)))
+    (flet ((param (k v) (when v (ensure-gethash k params v)))
+	   (slot-def (s) (slot-to-authorize-cons cc-data s)))
+      (when amount
+	(param "x_amount" (etypecase amount
+			    (string amount)
+			    (number (format nil "~0,2F" amount)))))	
+      (param "x_trans_id" transaction-id)
+      (when (and include-cc cc-data)	  
+	(param "x_card_code" (ccv cc-data))
+	(param "x_card_num" (account cc-data))
+	(param "x_exp_date" (expdate cc-data)))
+      (iter (for (k . v) in (mapcar #'slot-def +authorize-slots+))
+	    (param k v)))
+
+    (log-it :debug
+	    "cl-authorize-net:build-post, results: ~s"
+	    ;;; dont log sensitive info
+	    (let ((val (copy-hash-table params)))
+	      (when-let ((cc (gethash "x_card_num" val)))
+		(setf (gethash "x_card_num" val)
+		      (format nil "#############~a"
+			      (subseq cc (- (length cc) 4)))))
+	      (when (gethash "x_card_code" val)
+		(setf (gethash "x_card_code" val) "HIDDEN-CCV"))
+	      (hash-table-alist val)))
+
+    ;; caller expects alist of strings
+    (iter (for (k . v) in (hash-table-alist params))
+	  (collect (cons (princ-to-string k)
+			 (princ-to-string v))))))
 
 (defun args-to-query-string (alist)
   (format nil "~{~A~^&~}"

@@ -74,3 +74,60 @@
       (assert-equal "1.00"  (response-value :amount pairs)
 		    "The test should authorize an amount of 1$ which is what we passed"))
     ))
+
+(define-test echeck-constraints
+  (let ((valid-data (make-instance 'echeck-data
+				   :bank-aba-code "123456789"
+				   :bank-acct-num "123"
+				   :bank-name "test"
+				   :bank-acct-name "test"
+				   :bank-acct-type (first +echeck-bank-acct-types+))))
+    (assert-true valid-data "all's OK")
+    (labels ((assert-invalid (what-were-testing val
+						&key (bank-aba-code (bank-aba-code valid-data))
+						(bank-acct-type (bank-acct-type valid-data))
+						(bank-acct-num (bank-acct-num valid-data))
+						(bank-name (bank-name valid-data))
+						(bank-acct-name (bank-acct-name valid-data)))
+	       (assert-error 'invalid-echeck-data
+			     (make-instance 'echeck-data
+					    :bank-aba-code bank-aba-code
+					    :bank-acct-type bank-acct-type
+					    :bank-acct-num bank-acct-num
+					    :bank-name bank-name
+					    :bank-acct-name bank-acct-name)
+			     "should only allow valid data" what-were-testing val)
+	       
+	       
+	       )
+	     (assert-bad-values (initarg &rest bad-values)
+	       (dolist (bad bad-values)
+		 (apply #'assert-invalid (list initarg bad initarg bad)))))
+
+    
+      (assert-bad-values :bank-acct-type "bad" nil "CHECKING " "")
+      (assert-bad-values :bank-aba-code "bad" nil 5 ""
+			 "1234567890" ;;too long
+			 "12345678"   ;; too short
+			 "a12345678"  ;;right length, non-numeric
+			 )
+      (assert-bad-values :bank-acct-num "bad" nil 5 ""
+			 "123456789012345678901" ;; too long
+			 "a2345678901234567890" ;; right length, non-numeric
+			 )
+
+      (assert-bad-values :bank-name 5 nil
+			 ""
+			 "testingtestingtestingtestingtestingtestingtesting!!" ;; too long
+			 )
+      (assert-bad-values :bank-acct-name 5 nil
+			 ""
+			 "testingtestingtestingtestingtestingtestingtesting!!" ;; too long
+			 )
+      )
+    )
+    
+    
+  
+	     
+  )

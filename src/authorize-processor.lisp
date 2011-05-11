@@ -163,6 +163,7 @@
     (unless (= status 200)
       ;;It looks like the creditcard number isn't sent back, so we should be allright to
       ;; include the body in the error.
+      (log-it :error "Server responded with a bad status: ~a ~a~%~a" status reason-phrase body)
       (error 'cc-error
 	     :user-message "There was an error with the response from the credit card processor."
 	     :format-control "Server responded with a bad status: ~a ~a~%~a"

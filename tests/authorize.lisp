@@ -247,3 +247,21 @@
 			 "testingtestingtestingtestingtestingtestingtesting!!" ;; too long
 			 )
       (assert-bad-values :echeck-type 5 nil "" "asdf" "ARC" "BOC" "TEL"))))
+
+(define-test echeck-sale
+  (with-logging
+    (let ((processor (test-authorize-processor))	
+	  (echeck-data (make-instance 'echeck-data
+				      :bank-aba-code "123456789"
+				      :bank-acct-num "123"
+				      :bank-name "test"
+				      :bank-acct-name "test"
+				      :bank-acct-type (first +echeck-bank-acct-types+))))
+
+      (multiple-value-bind (tranid pairs) (sale processor echeck-data "1.00")
+	(assert-equal "0" tranid
+		      "The test should authorize and return a transaction code of 0")
+	(assert-equal "1.00"  (response-value :amount pairs)
+		      "The test should authorize an amount of 1$ which is what we passed"))
+      ))
+  )

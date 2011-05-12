@@ -84,3 +84,18 @@ Must be one of +echeck-types+.  Defaults to WEB")
       
       )
     params))
+
+(define-condition unsupported-operation (error) ())
+
+(defmethod authorize ((ap authorize-processor)
+		      (cc-data echeck-data)
+		       amount &key &allow-other-keys)
+  (signal 'unsupported-operation))
+
+(defmethod sale ((ap authorize-processor)
+		      (cc-data echeck-data)
+		       amount &key &allow-other-keys)
+  (possibly-return-expected-result sale)
+  (let* ((*processor* ap)
+	 (post-args (build-post ap nil :cc-data cc-data :amount amount)))
+    (process ap post-args)))

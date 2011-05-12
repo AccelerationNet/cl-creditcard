@@ -59,14 +59,6 @@
 (defun munge-authorize-slot-name (slot-name)
   (format nil "x_~a" (symbol-munger:lisp->underscores slot-name)))
 
-(defun slot-to-authorize-cons (data slot)
-  (let ((it (ignore-errors (funcall slot data))))
-    (when it
-      (cons (munge-authorize-slot-name slot)
-	    (case slot
-	      (recurring-billing (bool-value it))
-	      (T it))))))
-
 (defparameter +transaction-type+
   '((:auth .  "AUTH_ONLY")
     (:capture-prior-auth .  "PRIOR_AUTH_CAPTURE")
@@ -76,50 +68,64 @@
 (defun transaction-type (key)
   (cdr (assoc key +transaction-type+)))
 
-(defmethod prebuild-post ((ap authorize-processor) cc-data type )
+
+(defmacro with-param-hash ((param-fn-sym &optional params params-sym ) &body body)
+  (let ((params-sym (or params-sym (gensym "params"))))
+    `(let ((,params-sym ,(or params `(make-hash-table :test 'equalp))))
+       (flet ((,param-fn-sym (k v)
+		(when v (ensure-gethash k ,params-sym v))
+		,params-sym))
+	 ,@body)))
+  )
+
+(defmethod prebuild-post :around ((ap authorize-processor) cc-data type)
+  (with-param-hash (param (call-next-method))
+    (param "x_version" +version+)
+    (param "x_delim_data" (bool-value T))
+    (param "x_delim_char" +delimiter+)
+    (param "x_encap_char" +encapsulater+)
+    (param "x_login" (login ap))
+    (param "x_tran_key" (trankey ap))
+    (param "x_relay_response" (bool-value nil))
+    (param "x_test_request" (bool-value (test-mode ap)))))
+
+(defmethod prebuild-post ((ap authorize-processor) (cc-data authorize-data) type )
   "returns a hashtable of post parameters"
-  (let ((params (make-hash-table :test 'equalp)))
-    (flet ((param (k v) (ensure-gethash k params v)))      
-       (param "x_version" +version+)
-       (param "x_delim_data" (bool-value T))
-       (param "x_delim_char" +delimiter+)
-       (param "x_encap_char" +encapsulater+)
-       (param "x_type" (typecase type
-			(string type)
-			(symbol (transaction-type type))))
-       (param "x_login" (login ap))
-       (param "x_tran_key" (trankey ap))
-       (param "x_relay_response" (bool-value nil))
-       (param "x_test_request" (bool-value (test-mode ap))))
-    params))
+  (with-param-hash (param)
+    (param "x_type" (typecase type
+		      (string type)
+		      (symbol (transaction-type type))))))
 
 (defmethod add-sensitive-data ((cc-data authorize-data) params)
   "adds senstivee data to the given hashtable"
-  (flet ((param (k v) (when v (ensure-gethash k params v))))
+  (with-param-hash (param params)
     (param "x_card_code" (ccv cc-data))
     (param "x_card_num" (account cc-data))
     (param "x_exp_date" (expdate cc-data))))
 
 (defmethod build-post ((ap authorize-processor) type &key cc-data amount transaction-id (include-cc T) &allow-other-keys)
-  "returns an alist of strings"
-  (let ((params (prebuild-post ap cc-data type)))
-    (flet ((param (k v) (when v (ensure-gethash k params v)))
-	   (slot-def (s) (slot-to-authorize-cons cc-data s)))
-      (when amount
-	(param "x_amount" (etypecase amount
-			    (string amount)
-			    (number (format nil "~0,2F" amount)))))	
-      (param "x_trans_id" transaction-id)
-      (when (and include-cc cc-data)
-	(add-sensitive-data cc-data params))
-      
-      (iter (for (k . v) in (mapcar #'slot-def +authorize-slots+))
-	    (param k v)))
+  "returns an alist of strings"  
+
+  (with-param-hash (param (prebuild-post ap cc-data type) params)		  
+    (when amount
+      (param "x_amount" (etypecase amount
+			  (string amount)
+			  (number (format nil "~0,2F" amount)))))	
+    (param "x_trans_id" transaction-id)
+		    
+    (when (and include-cc cc-data)
+      (add-sensitive-data cc-data params))
+	   
+    (dolist (slot +authorize-slots+)
+      (when-let ((val (ignore-errors (funcall slot cc-data))))
+	(param (munge-authorize-slot-name slot)
+	       (case slot
+		 (recurring-billing (bool-value val))
+		 (T val)))))
 
     (log-it :debug
-	    "cl-authorize-net:build-post, results: ~s"
-	    ;;; dont log sensitive info
-	    (let ((val (copy-hash-table params)))
+	    "cl-authorize-net:build-post, results: ~s" 
+	    (let ((val (copy-hash-table params))) ;;; dont log sensitive info
 	      (when (gethash "x_card_code" val)
 		(setf (gethash "x_card_code" val) "HIDDEN-CCV"))
 

@@ -93,6 +93,13 @@
        (param "x_test_request" (bool-value (test-mode ap))))
     params))
 
+(defmethod add-sensitive-data ((cc-data authorize-data) params)
+  "adds senstivee data to the given hashtable"
+  (flet ((param (k v) (when v (ensure-gethash k params v))))
+    (param "x_card_code" (ccv cc-data))
+    (param "x_card_num" (account cc-data))
+    (param "x_exp_date" (expdate cc-data))))
+
 (defmethod build-post ((ap authorize-processor) type &key cc-data amount transaction-id (include-cc T) &allow-other-keys)
   "returns an alist of strings"
   (let ((params (prebuild-post ap cc-data type)))
@@ -103,10 +110,9 @@
 			    (string amount)
 			    (number (format nil "~0,2F" amount)))))	
       (param "x_trans_id" transaction-id)
-      (when (and include-cc cc-data)	  
-	(param "x_card_code" (ccv cc-data))
-	(param "x_card_num" (account cc-data))
-	(param "x_exp_date" (expdate cc-data)))
+      (when (and include-cc cc-data)
+	(add-sensitive-data cc-data params))
+      
       (iter (for (k . v) in (mapcar #'slot-def +authorize-slots+))
 	    (param k v)))
 
@@ -114,12 +120,20 @@
 	    "cl-authorize-net:build-post, results: ~s"
 	    ;;; dont log sensitive info
 	    (let ((val (copy-hash-table params)))
-	      (when-let ((cc (gethash "x_card_num" val)))
-		(setf (gethash "x_card_num" val)
-		      (format nil "#############~a"
-			      (subseq cc (- (length cc) 4)))))
 	      (when (gethash "x_card_code" val)
 		(setf (gethash "x_card_code" val) "HIDDEN-CCV"))
+
+	      ;;mask these
+	      (dolist (key '("x_card_num" "x_bank_aba_code" "x_bank_acct_num"))
+		(when-let ((x (gethash key val)))
+		  (setf (gethash key val)
+			(let* ((l (length x))
+			       (unmasked (max 1 (min 4 (truncate (/ l 2)))))
+			       (masked (- (length x) unmasked)))
+			  (format nil "~a~a"
+				  (make-string masked :initial-element #\#)
+				  (subseq x (- l unmasked)))))))
+
 	      (hash-table-alist val)))
 
     ;; caller expects alist of strings

@@ -80,14 +80,27 @@
 		      "The test should authorize an amount of 1$ which is what we passed")))))
 
 (defmacro assert-equal-post (expected form &rest extras)
-  `(assert-true (set-equal ,expected ,form :test #'equalp)
+  `(assert-false (set-difference ,expected ,form :test #'equalp)
 		,@extras))
 
 (define-test test-build-post
   (with-logging
-    (let* ((processor (test-authorize-processor))
-	   (data (make-test-cc-data))
-	   (ccv-data (make-test-cc-data)))
+    (let ((processor (test-authorize-processor))
+	  (data (make-test-cc-data))
+	  (ccv-data (make-test-cc-data))
+	  (echeck-web-data (make-instance 'echeck-data
+					  :bank-aba-code "123456789"
+					  :bank-acct-num "123"
+					  :bank-name "test"
+					  :bank-acct-name "test"
+					  :bank-acct-type (first +echeck-bank-acct-types+)))
+	  (echeck-ccd-data (make-instance 'echeck-data
+					  :bank-aba-code "123456789"
+					  :bank-acct-num "123"
+					  :bank-name "test"
+					  :bank-acct-name "test"
+					  :echeck-type "CCD"
+					  :bank-acct-type "BUSINESSCHECKING")))
       (setf (ccv ccv-data) "000")
       (assert-equal-post
        '(("x_version" . "3.1") ("x_delim_data" . "TRUE") ("x_delim_char" . "|")
@@ -96,37 +109,95 @@
 	 ("x_relay_response" . "FALSE") ("x_test_request" . "TRUE")
 	 ("x_amount" . "1.00") ("x_card_num" . "4222222222222")
 	 ("x_exp_date" . "01/11"))
-       (build-post processor :auth :cc-data data :amount 1)
-       
-		    )
-      (assert-equal-post 
-		     '(("x_version" . "3.1") ("x_delim_data" . "TRUE") ("x_delim_char" . "|")
-		      ("x_encap_char" . "") ("x_type" . "AUTH_ONLY")
-		      ("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
-		      ("x_relay_response" . "FALSE") ("x_test_request" . "TRUE")
-		      ("x_amount" . "1.00") ("x_card_code" . "000")
-		      ("x_card_num" . "4222222222222")
-		      ("x_exp_date" . "01/11"))
-		     (build-post processor :auth :cc-data ccv-data :amount 1))
+       (build-post processor :auth :cc-data data :amount 1))
       
-      (assert-equal-post '(("x_version" . "3.1") ("x_delim_data" . "TRUE") ("x_delim_char" . "|")
-		      ("x_encap_char" . "") ("x_type" . "AUTH_ONLY")
-		      ("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
-		      ("x_relay_response" . "FALSE") ("x_test_request" . "TRUE")
-		      ("x_amount" . "1.00"))
-		    (build-post processor :auth :cc-data data :amount 1 :include-cc nil)
+      (assert-equal-post 
+       '(("x_version" . "3.1") ("x_delim_data" . "TRUE") ("x_delim_char" . "|")
+	 ("x_encap_char" . "") ("x_type" . "AUTH_ONLY")
+	 ("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
+	 ("x_relay_response" . "FALSE") ("x_test_request" . "TRUE")
+	 ("x_amount" . "1.00") ("x_card_code" . "000")
+	 ("x_card_num" . "4222222222222")
+	 ("x_exp_date" . "01/11"))
+       (build-post processor :auth :cc-data ccv-data :amount 1))
+      
+      (assert-equal-post '(("x_version" . "3.1") ("x_delim_data" . "TRUE")
+			   ("x_delim_char" . "|") ("x_encap_char" . "") ("x_type" . "AUTH_ONLY")
+			   ("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
+			   ("x_relay_response" . "FALSE") ("x_test_request" . "TRUE")
+			   ("x_amount" . "1.00"))
+			 (build-post processor :auth :cc-data data :amount 1 :include-cc nil))
+      
+      (assert-equal-post '(("x_version" . "3.1") ("x_delim_data" . "TRUE")
+			   ("x_delim_char" . "|") ("x_encap_char" . "") ("x_type" . "AUTH_ONLY")
+			   ("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
+			   ("x_relay_response" . "FALSE") ("x_test_request" . "TRUE")
+			   ("x_amount" . "1.00"))
+			 (build-post processor :auth :cc-data ccv-data :amount 1
+				     :include-cc nil))
 
-		    )
-      (assert-equal-post '(("x_version" . "3.1") ("x_delim_data" . "TRUE") ("x_delim_char" . "|")
-		      ("x_encap_char" . "") ("x_type" . "AUTH_ONLY")
-		      ("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
-		      ("x_relay_response" . "FALSE") ("x_test_request" . "TRUE")
-		      ("x_amount" . "1.00"))
-		    (build-post processor :auth :cc-data ccv-data :amount 1 :include-cc nil)
-		    )
-      )
-    )
-  )
+      
+      (assert-equal-post '(("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
+			   ("x_amount" . "1.00") ("x_method" . "ECHECK")
+			   ("x_bank_aba_code" . "123456789") ("x_bank_acct_num" . "123")
+			   ("x_bank_acct_type" . "CHECKING") ("x_bank_name" . "test")
+			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "WEB")
+			   ("x_recurring_billing" . "FALSE"))
+			 (build-post processor nil
+				     :cc-data echeck-web-data
+				     :amount 1))
+      
+      (assert-equal-post '(("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
+			   ("x_amount" . "1.00") ("x_method" . "ECHECK")
+			   ("x_bank_aba_code" . "123456789") ("x_bank_acct_num" . "123")
+			   ("x_bank_acct_type" . "BUSINESSCHECKING") ("x_bank_name" . "test")
+			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "CCD"))
+			 (build-post processor nil
+				     :cc-data echeck-ccd-data
+				     :amount 1))
+      (assert-equal-post '(("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
+			   ("x_amount" . "1.00") ("x_method" . "ECHECK")
+			   ("x_bank_acct_type" . "CHECKING") ("x_bank_name" . "test")
+			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "WEB")
+			   ("x_recurring_billing" . "FALSE"))
+			 (build-post processor nil
+				     :cc-data echeck-web-data
+				     :amount 1 :include-cc nil))
+      
+      (assert-equal-post '(("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
+			   ("x_amount" . "1.00") ("x_method" . "ECHECK")
+			   ("x_bank_acct_type" . "BUSINESSCHECKING") ("x_bank_name" . "test")
+			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "CCD"))
+			 (build-post processor nil
+				     :cc-data echeck-ccd-data
+				     :amount 1 :include-cc nil)))))
+
+(define-test dont-log-sensitive-data
+  (let ((processor (test-authorize-processor))
+	(data (make-test-cc-data))
+	(ccv-data (make-test-cc-data))
+	(echeck-data (make-instance 'echeck-data
+				    :bank-aba-code "123456789"
+				    :bank-acct-num "123"
+				    :bank-name "test"
+				    :bank-acct-name "test"
+				    :bank-acct-type (first +echeck-bank-acct-types+)))
+	(*log-fn* (lambda (category msg-fn)
+		    (declare (ignore category))
+		    (let ((msg (funcall msg-fn)))
+		      (assert-false (search "\"4222222222222\"" msg)
+				    "should not find CC number!")
+		      (assert-false (search "\"000\"" msg)
+				    "should not find CCV number!")
+		      (assert-false (search "\"123456789\"" msg)
+				    "should not find aba code!")
+		      (assert-false (search "\"123\"" msg)
+				    "should not find bank acct number!" msg)))))
+    (setf (ccv ccv-data) "000")
+    (build-post processor :auth :cc-data data :amount 1)
+    (build-post processor :auth :cc-data ccv-data :amount 1)
+    (build-post processor nil :cc-data echeck-data :amount 1)))
+
 
 (define-test echeck-constraints
   (let ((valid-data (make-instance 'echeck-data

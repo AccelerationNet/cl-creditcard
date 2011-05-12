@@ -60,3 +60,27 @@ Must be one of +echeck-types+.  Defaults to WEB")
   (unless (and (stringp (echeck-type self))
 	       (member (echeck-type self) +supported-echeck-types+ :test #'string=))
     (signal 'invalid-echeck-data "unsupported echeck-type" :echeck-data self)))
+
+(defmethod add-sensitive-data ((cc-data echeck-data) params)
+  "adds senstivee data to the given hashtable"
+  (flet ((param (k v) (when v (ensure-gethash k params v))))
+    (param "x_bank_aba_code" (bank-aba-code cc-data))
+    (param "x_bank_acct_num" (bank-acct-num cc-data))))
+
+(defmethod prebuild-post ((ap authorize-processor) (cc-data echeck-data) type )
+  "returns a hashtable of post parameters"
+  (let ((params (make-hash-table :test 'equalp)))
+    (flet ((param (k v) (ensure-gethash k params v)))
+      (param "x_login" (login ap))
+      (param "x_method" "ECHECK")
+      (param "x_tran_key" (trankey ap))
+      (dolist (sym '(bank-name bank-acct-name bank-acct-type echeck-type))
+	(param (munge-authorize-slot-name sym)
+	       (slot-value cc-data sym)))
+      (when (string-equal "WEB" (echeck-type cc-data))
+	(param (munge-authorize-slot-name 'recurring-billing)
+	       (bool-value (slot-value cc-data 'recurring-billing))))
+
+      
+      )
+    params))

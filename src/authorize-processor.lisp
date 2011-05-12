@@ -57,8 +57,7 @@
 (defun bool-value (x) (if x "TRUE" "FALSE"))
 
 (defun munge-authorize-slot-name (slot-name)
-  (let ((name (cl-creditcard::replace-all (string-downcase (string slot-name)) "-" "_")))
-    (format nil "x_~a" name)))
+  (format nil "x_~a" (symbol-munger:lisp->underscores slot-name)))
 
 (defun slot-to-authorize-cons (data slot)
   (let ((it (ignore-errors (funcall slot data))))

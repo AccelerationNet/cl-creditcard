@@ -23,7 +23,7 @@
 			 (:file "authorize-processor")
 			 (:file "authorize-echeck")
 			 )))
-  :depends-on (:cl-creditcard :drakma :alexandria))
+  :depends-on (:cl-creditcard :drakma :alexandria :symbol-munger))
 
 (defsystem :cl-authorize-net-tests
   :description "Talk to the Authorize.net Payment Processing Software. Test Suite."

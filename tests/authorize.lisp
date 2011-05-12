@@ -142,7 +142,7 @@
 			   ("x_bank_aba_code" . "123456789") ("x_bank_acct_num" . "123")
 			   ("x_bank_acct_type" . "CHECKING") ("x_bank_name" . "test")
 			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "WEB")
-			   ("x_recurring_billing" . "FALSE"))
+			   ("x_recurring_billing" . "FALSE") ("x_test_request" . "TRUE"))
 			 (build-post processor nil
 				     :cc-data echeck-web-data
 				     :amount 1))
@@ -151,7 +151,8 @@
 			   ("x_amount" . "1.00") ("x_method" . "ECHECK")
 			   ("x_bank_aba_code" . "123456789") ("x_bank_acct_num" . "123")
 			   ("x_bank_acct_type" . "BUSINESSCHECKING") ("x_bank_name" . "test")
-			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "CCD"))
+			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "CCD")
+			   ("x_test_request" . "TRUE"))
 			 (build-post processor nil
 				     :cc-data echeck-ccd-data
 				     :amount 1))
@@ -159,7 +160,7 @@
 			   ("x_amount" . "1.00") ("x_method" . "ECHECK")
 			   ("x_bank_acct_type" . "CHECKING") ("x_bank_name" . "test")
 			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "WEB")
-			   ("x_recurring_billing" . "FALSE"))
+			   ("x_recurring_billing" . "FALSE") ("x_test_request" . "TRUE"))
 			 (build-post processor nil
 				     :cc-data echeck-web-data
 				     :amount 1 :include-cc nil))
@@ -167,7 +168,8 @@
       (assert-equal-post '(("x_login" . "cnpdev4289") ("x_tran_key" . "SR2P8g4jdEn7vFLQ")
 			   ("x_amount" . "1.00") ("x_method" . "ECHECK")
 			   ("x_bank_acct_type" . "BUSINESSCHECKING") ("x_bank_name" . "test")
-			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "CCD"))
+			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "CCD")
+			   ("x_test_request" . "TRUE"))
 			 (build-post processor nil
 				     :cc-data echeck-ccd-data
 				     :amount 1 :include-cc nil)))))
@@ -252,8 +254,8 @@
   (with-logging
     (let ((processor (test-authorize-processor))	
 	  (echeck-data (make-instance 'echeck-data
-				      :bank-aba-code "123456789"
-				      :bank-acct-num "123"
+				      :bank-aba-code "263178478"
+				      :bank-acct-num "123456"
 				      :bank-name "test"
 				      :bank-acct-name "test"
 				      :bank-acct-type (first +echeck-bank-acct-types+))))

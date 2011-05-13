@@ -49,10 +49,14 @@
   (defparameter +authorize-slots+
     '(first-name last-name company email address city state zip country phone fax cust-id customer-ip recurring-billing invoice-num description)))
 
-(defclass authorize-data (cc-data)
+(defclass authorize-customer-data ()
   #.(mapcar (lambda (x)
 	      (list x :accessor x :initform nil :initarg (intern (symbol-name x) :keyword)))
-	    +authorize-slots+))
+	    +authorize-slots+)
+  (:documentation "customer / invoice information")
+  )
+
+(defclass authorize-data (cc-data authorize-customer-data) ())
 
 (defun bool-value (x) (if x "TRUE" "FALSE"))
 

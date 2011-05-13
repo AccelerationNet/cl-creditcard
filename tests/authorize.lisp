@@ -93,6 +93,23 @@
 					  :bank-acct-num "123"
 					  :bank-name "test"
 					  :bank-acct-name "test"
+					  
+					  :first-name "first-name"
+					  :last-name "last-name"
+					  :email "email@example.com"
+					  :address "address"
+					  :city "city"
+					  :state "ST"
+					  :zip "zip code"
+					  :country "USA"
+					  :phone "phone"
+					  :fax "fax"
+					  :cust-id "1"
+					  :customer-ip "127.0.0.1"
+					  :invoice-num "invoice #"
+					  :description "desc"
+					  
+					  
 					  :bank-acct-type (first +echeck-bank-acct-types+)))
 	  (echeck-ccd-data (make-instance 'echeck-data
 					  :bank-aba-code "123456789"
@@ -100,7 +117,23 @@
 					  :bank-name "test"
 					  :bank-acct-name "test"
 					  :echeck-type "CCD"
-					  :bank-acct-type "BUSINESSCHECKING")))
+					  :bank-acct-type "BUSINESSCHECKING"
+					  :first-name "first-name"
+					  :last-name "last-name"
+					  :company "company"
+					  :email "email@example.com"
+					  :address "address"
+					  :city "city"
+					  :state "ST"
+					  :zip "zip code"
+					  :country "USA"
+					  :phone "phone"
+					  :fax "fax"
+					  :cust-id "1"
+					  :customer-ip "127.0.0.1"
+					  :invoice-num "invoice #"
+					  :description "desc"
+)))
       (setf (ccv ccv-data) "000")
       (assert-equal-post
        '(("x_version" . "3.1") ("x_delim_data" . "TRUE") ("x_delim_char" . "|")
@@ -142,7 +175,22 @@
 			   ("x_bank_aba_code" . "123456789") ("x_bank_acct_num" . "123")
 			   ("x_bank_acct_type" . "CHECKING") ("x_bank_name" . "test")
 			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "WEB")
-			   ("x_recurring_billing" . "FALSE") ("x_test_request" . "TRUE"))
+			   ("x_recurring_billing" . "FALSE") ("x_test_request" . "TRUE")
+			   ("x_first_name" . "first-name")
+			   ("x_last_name" . "last-name")
+			   ("x_email" . "email@example.com")
+			   ("x_address" . "address")
+			   ("x_city" . "city")
+			   ("x_state" . "ST")
+			   ("x_zip" . "zip code")
+			   ("x_country" . "USA")
+			   ("x_phone" . "phone")
+			   ("x_fax" . "fax")
+			   ("x_cust_id" . "1")
+			   ("x_customer_ip" . "127.0.0.1")
+			   ("x_invoice_num" . "invoice #")
+			   ("x_description" . "desc")
+			   )
 			 (build-post processor nil
 				     :cc-data echeck-web-data
 				     :amount 1))
@@ -152,7 +200,22 @@
 			   ("x_bank_aba_code" . "123456789") ("x_bank_acct_num" . "123")
 			   ("x_bank_acct_type" . "BUSINESSCHECKING") ("x_bank_name" . "test")
 			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "CCD")
-			   ("x_test_request" . "TRUE"))
+			   ("x_test_request" . "TRUE")
+			   			   ("x_first_name" . "first-name")
+			   ("x_last_name" . "last-name")
+			   ("x_company" . "company")
+			   ("x_email" . "email@example.com")
+			   ("x_address" . "address")
+			   ("x_city" . "city")
+			   ("x_state" . "ST")
+			   ("x_zip" . "zip code")
+			   ("x_country" . "USA")
+			   ("x_phone" . "phone")
+			   ("x_fax" . "fax")
+			   ("x_cust_id" . "1")
+			   ("x_customer_ip" . "127.0.0.1")
+			   ("x_invoice_num" . "invoice #")
+			   ("x_description" . "desc"))
 			 (build-post processor nil
 				     :cc-data echeck-ccd-data
 				     :amount 1))
@@ -160,7 +223,21 @@
 			   ("x_amount" . "1.00") ("x_method" . "ECHECK")
 			   ("x_bank_acct_type" . "CHECKING") ("x_bank_name" . "test")
 			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "WEB")
-			   ("x_recurring_billing" . "FALSE") ("x_test_request" . "TRUE"))
+			   ("x_recurring_billing" . "FALSE") ("x_test_request" . "TRUE")
+			   			   ("x_first_name" . "first-name")
+			   ("x_last_name" . "last-name")
+			   ("x_email" . "email@example.com")
+			   ("x_address" . "address")
+			   ("x_city" . "city")
+			   ("x_state" . "ST")
+			   ("x_zip" . "zip code")
+			   ("x_country" . "USA")
+			   ("x_phone" . "phone")
+			   ("x_fax" . "fax")
+			   ("x_cust_id" . "1")
+			   ("x_customer_ip" . "127.0.0.1")
+			   ("x_invoice_num" . "invoice #")
+			   ("x_description" . "desc"))
 			 (build-post processor nil
 				     :cc-data echeck-web-data
 				     :amount 1 :include-cc nil))
@@ -169,7 +246,22 @@
 			   ("x_amount" . "1.00") ("x_method" . "ECHECK")
 			   ("x_bank_acct_type" . "BUSINESSCHECKING") ("x_bank_name" . "test")
 			   ("x_bank_acct_name" . "test") ("x_echeck_type" . "CCD")
-			   ("x_test_request" . "TRUE"))
+			   ("x_test_request" . "TRUE")
+			   			   ("x_first_name" . "first-name")
+			   ("x_last_name" . "last-name")
+			   ("x_company" . "company")
+			   ("x_email" . "email@example.com")
+			   ("x_address" . "address")
+			   ("x_city" . "city")
+			   ("x_state" . "ST")
+			   ("x_zip" . "zip code")
+			   ("x_country" . "USA")
+			   ("x_phone" . "phone")
+			   ("x_fax" . "fax")
+			   ("x_cust_id" . "1")
+			   ("x_customer_ip" . "127.0.0.1")
+			   ("x_invoice_num" . "invoice #")
+			   ("x_description" . "desc"))
 			 (build-post processor nil
 				     :cc-data echeck-ccd-data
 				     :amount 1 :include-cc nil)))))

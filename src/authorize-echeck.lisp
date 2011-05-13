@@ -12,7 +12,7 @@
   (and string (stringp string)
        (<= low (length string) high)))
 
-(defclass echeck-data ()
+(defclass echeck-data (authorize-customer-data)
   ((bank-aba-code :initarg :bank-aba-code :accessor bank-aba-code :type (string 9)
 		  :documentation "The valid routing number of the customer's bank.
 Must be a string of 9 digits.")

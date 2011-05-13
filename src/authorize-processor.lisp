@@ -18,10 +18,23 @@
 
   ")
 
+(defmacro possibly-return-expected-result (tag)
+  `(when (not (eql :unbound *expected-result*))
+     (log-it :info "Skipping normal execution, returning *expected-result*: ~a" *expected-result*)
+     (return-from ,tag (typecase *expected-result*
+			 (function (funcall *expected-result*))
+			 (T *expected-result*)))))
+
 (defvar *log-fn* ()
-  "A fn to send log messages to (lambda (msg &optional level ))
- level will be an integer indicating its importance with 0 as debug/dribble and going up being
- increasingly important")
+  "A fn to send log messages to, must conform to: (lambda (category msg-fn)).
+ * category will be one of: '(:debug, :info, :warn, :error, :fatal)
+ * msg-fn is a lambda that generates the actual message")
+
+(defmacro log-it (category format-string &rest args)
+  `(when *log-fn*
+     (ignore-errors
+       (funcall *log-fn* ,category
+		#'(lambda () (format nil ,format-string ,@args) )))))
 
 (defvar *processor* nil
   "A variable to be bound to a processor for internal use")
@@ -43,24 +56,19 @@
   (defparameter +authorize-slots+
     '(first-name last-name company email address city state zip country phone fax cust-id customer-ip recurring-billing invoice-num description)))
 
-(defclass authorize-data (cc-data)
+(defclass authorize-customer-data ()
   #.(mapcar (lambda (x)
 	      (list x :accessor x :initform nil :initarg (intern (symbol-name x) :keyword)))
-	    +authorize-slots+))
+	    +authorize-slots+)
+  (:documentation "customer / invoice information")
+  )
+
+(defclass authorize-data (cc-data authorize-customer-data) ())
 
 (defun bool-value (x) (if x "TRUE" "FALSE"))
 
 (defun munge-authorize-slot-name (slot-name)
-  (let ((name (cl-creditcard::replace-all (string-downcase (string slot-name)) "-" "_")))
-    (format nil "x_~a" name)))
-
-(defun slot-to-authorize-cons (data slot)
-  (let ((it (ignore-errors (funcall slot data))))
-    (when it
-      (cons (munge-authorize-slot-name slot)
-	    (case slot
-	      (recurring-billing (bool-value it))
-	      (T it))))))
+  (format nil "x_~a" (symbol-munger:lisp->underscores slot-name)))
 
 (defparameter +transaction-type+
   '((:auth .  "AUTH_ONLY")
@@ -71,54 +79,84 @@
 (defun transaction-type (key)
   (cdr (assoc key +transaction-type+)))
 
-(defmethod prebuild-post ((ap authorize-processor) cc-data type )
-  (list
-   (cons "x_version" +version+)
-   (cons "x_delim_data" (bool-value T))
-   (cons "x_delim_char" +delimiter+)
-   (cons "x_encap_char" +encapsulater+)
-   (cons "x_type" (typecase type
-		    (string type)
-		    (symbol (transaction-type type))))
-   (cons "x_login" (login ap))
-   (cons "x_tran_key" (trankey ap))
-   (cons "x_relay_response" (bool-value nil))
-   (cons "x_test_request" (bool-value (test-mode ap)))))
+
+(defmacro with-param-hash ((param-fn-sym &optional params params-sym ) &body body)
+  (let ((params-sym (or params-sym (gensym "params"))))
+    `(let ((,params-sym ,(or params `(make-hash-table :test 'equalp))))
+       (flet ((,param-fn-sym (k v)
+		(when v (ensure-gethash k ,params-sym v))
+		,params-sym))
+	 ,@body)))
+  )
+
+(defmethod prebuild-post :around ((ap authorize-processor) cc-data type)
+  (with-param-hash (param (call-next-method))
+    (param "x_version" +version+)
+    (param "x_delim_data" (bool-value T))
+    (param "x_delim_char" +delimiter+)
+    (param "x_encap_char" +encapsulater+)
+    (param "x_login" (login ap))
+    (param "x_tran_key" (trankey ap))
+    (param "x_relay_response" (bool-value nil))
+    (param "x_test_request" (bool-value (test-mode ap)))))
+
+(defmethod prebuild-post ((ap authorize-processor) (cc-data authorize-data) type )
+  "returns a hashtable of post parameters"
+  (with-param-hash (param)
+    (param "x_type" (typecase type
+		      (string type)
+		      (symbol (transaction-type type))))))
+
+(defmethod add-sensitive-data ((cc-data authorize-data) params)
+  "adds senstivee data to the given hashtable"
+  (with-param-hash (param params)
+    (param "x_card_code" (ccv cc-data))
+    (param "x_card_num" (account cc-data))
+    (param "x_exp_date" (expdate cc-data))))
 
 (defmethod build-post ((ap authorize-processor) type &key cc-data amount transaction-id (include-cc T) &allow-other-keys)
-  (flet ((slot-def (s) (slot-to-authorize-cons cc-data s)))
-    (let ((rtn
-	   (iter (for (k . v) in (append (prebuild-post ap cc-data type)
-					 (when amount
-					   (list (cons "x_amount" (etypecase amount
-								    (string amount)
-								    (number (format nil "~0,2F" amount))))))
-					 (when transaction-id
-					   (list (cons "x_trans_id" transaction-id)))
-					 (when (and include-cc cc-data)
-					   (append
-					    (when (ccv cc-data)
-					      (list (cons "x_card_code" (ccv cc-data))))
-					    (list (cons "x_card_num" (account cc-data))
-						  (cons "x_exp_date" (expdate cc-data))
-						  )))
-					 (mapcar #'slot-def +authorize-slots+)
-					 ))
-		 (when (and k v)
-		   (collect (cons (princ-to-string k) (princ-to-string v)))))))
-      (when *log-fn*
-	(ignore-errors
-	  (funcall *log-fn*
-		   ;;; dont log sensitive info
-		   (let* ((val (copy-alist rtn))
-			  (cc (find "x_card_num" val :key #'car :test #'string-equal ))
-			  (ccv (find "x_card_code" val :key #'car :test #'string-equal )))
-		     (when cc (setf (cdr cc) (format nil "#############~a" (subseq (cdr cc) (- (length (cdr cc)) 4)))))
-		     (when ccv (setf (cdr ccv) "HIDDEN-CCV"))
-		     (format nil "cl-authorize-net:build-post, results: ~s" val))
-		   0)))
-      rtn
-      )))
+  "returns an alist of strings"  
+
+  (with-param-hash (param (prebuild-post ap cc-data type) params)		  
+    (when amount
+      (param "x_amount" (etypecase amount
+			  (string amount)
+			  (number (format nil "~0,2F" amount)))))	
+    (param "x_trans_id" transaction-id)
+		    
+    (when (and include-cc cc-data)
+      (add-sensitive-data cc-data params))
+	   
+    (dolist (slot +authorize-slots+)
+      (when-let ((val (ignore-errors (funcall slot cc-data))))
+	(param (munge-authorize-slot-name slot)
+	       (case slot
+		 (recurring-billing (bool-value val))
+		 (T val)))))
+
+    (log-it :debug
+	    "cl-authorize-net:build-post, results: ~s" 
+	    (let ((val (copy-hash-table params))) ;;; dont log sensitive info
+	      (when (gethash "x_card_code" val)
+		(setf (gethash "x_card_code" val) "HIDDEN-CCV"))
+
+	      ;;mask these
+	      (dolist (key '("x_card_num" "x_bank_aba_code" "x_bank_acct_num"))
+		(when-let ((x (gethash key val)))
+		  (setf (gethash key val)
+			(let* ((l (length x))
+			       (unmasked (max 1 (min 4 (truncate (/ l 2)))))
+			       (masked (- (length x) unmasked)))
+			  (format nil "~a~a"
+				  (make-string masked :initial-element #\#)
+				  (subseq x (- l unmasked)))))))
+
+	      (hash-table-alist val)))
+
+    ;; caller expects alist of strings
+    (iter (for (k . v) in (hash-table-alist params))
+	  (collect (cons (princ-to-string k)
+			 (princ-to-string v))))))
 
 (defun args-to-query-string (alist)
   (format nil "~{~A~^&~}"
@@ -141,16 +179,16 @@
 			 collect (cons k v))))
     (when (>= len 38)
       (push (cons :card-code-response (nth 38 flat-list)) response))
-    (when *log-fn*
-      (funcall *log-fn*
-	       (format nil "cl-authorize-net:get-response-vars from:~a,~%results: ~s" (post-url *processor*) response)
-	       0))
+    (log-it :debug
+	    "cl-authorize-net:get-response-vars from:~a,~%results: ~s"
+	    (post-url *processor*) response)
     response))
 
-(defun response-value (key r) 
+(defun response-value (key r)
   (cdr (assoc key r)))
 
-(defmethod process ((ap authorize-processor) params)  
+(defmethod process ((ap authorize-processor) params)
+  (possibly-return-expected-result process)
   (multiple-value-bind (body status headers uri stream must-close reason-phrase)
       (drakma:http-request (post-url ap)
 			   :method :post :force-ssl T :parameters params)
@@ -158,11 +196,12 @@
     (unless (= status 200)
       ;;It looks like the creditcard number isn't sent back, so we should be allright to
       ;; include the body in the error.
+      (log-it :error "Server responded with a bad status: ~a ~a~%~a" status reason-phrase body)
       (error 'cc-error
 	     :user-message "There was an error with the response from the credit card processor."
 	     :format-control "Server responded with a bad status: ~a ~a~%~a"
 	     :format-arguments status reason-phrase body))
-    
+
     (let* ((pairs (get-response-vars body))
 	   (response-code (let ((*read-eval* nil)
 				(val (response-value :response-code pairs)))
@@ -181,36 +220,26 @@
 	       nil)))
 	pairs))))
 
-(defmacro possibly-return-expected-result (tag)
-  `(when (not (eql :unbound *expected-result*))
-     (return-from ,tag (typecase *expected-result*
-			 (function (funcall *expected-result*))
-			 (T *expected-result*)))))
-
 (defmethod authorize ((ap authorize-processor)
 		      cc-data amount &key &allow-other-keys)
-  (possibly-return-expected-result authorize)
   (let* ((*processor* ap)
 	 (post-args (build-post ap :auth :cc-data cc-data :amount amount)))
     (process ap post-args)))
 
 (defmethod preauth-capture ((ap authorize-processor)
 			    transaction-id &key amount &allow-other-keys)
-  (possibly-return-expected-result preauth-capture)
   (let* ((*processor* ap)
 	 (post-args (build-post ap :capture-prior-auth :transaction-id transaction-id :amount amount)))
     (process ap post-args))
   )
 
 (defmethod sale ((ap authorize-processor) cc-data amount &key  &allow-other-keys)
-  (possibly-return-expected-result sale)
   (let* ((*processor* ap)
 	 (post-args (build-post ap :sale :cc-data cc-data :amount amount)))
     (process ap post-args))
   )
 
 (defmethod void ((ap authorize-processor) transaction-id &key &allow-other-keys)
-  (possibly-return-expected-result void)
   (let* ((*processor* ap)
 	 (post-args (build-post ap :void :transaction-id transaction-id)))
     (process ap post-args))

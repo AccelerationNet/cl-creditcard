@@ -21,8 +21,9 @@
 	    :components ((:file "packages")
 			 (:file "credit-card-api")
 			 (:file "authorize-processor")
+			 (:file "authorize-echeck")
 			 )))
-  :depends-on (:cl-creditcard :drakma))
+  :depends-on (:cl-creditcard :drakma :alexandria :symbol-munger))
 
 (defsystem :cl-authorize-net-tests
   :description "Talk to the Authorize.net Payment Processing Software. Test Suite."
@@ -34,7 +35,7 @@
 	    :components ((:file "packages")
 			 (:file "authorize" )
 			 )))
-  :depends-on (:cl-authorize-net :lift))
+  :depends-on (:cl-authorize-net :lisp-unit :alexandria))
 
 ;; Copyright (c) 2008 Acceleration.net, Russ Tyndall, Ryan Davis, Nathan Bird
 

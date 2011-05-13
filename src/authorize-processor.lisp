@@ -18,6 +18,13 @@
 
   ")
 
+(defmacro possibly-return-expected-result (tag)
+  `(when (not (eql :unbound *expected-result*))
+     (log-it :info "Skipping normal execution, returning *expected-result*: ~a" *expected-result*)
+     (return-from ,tag (typecase *expected-result*
+			 (function (funcall *expected-result*))
+			 (T *expected-result*)))))
+
 (defvar *log-fn* ()
   "A fn to send log messages to, must conform to: (lambda (category msg-fn)).
  * category will be one of: '(:debug, :info, :warn, :error, :fatal)
@@ -181,6 +188,7 @@
   (cdr (assoc key r)))
 
 (defmethod process ((ap authorize-processor) params)
+  (possibly-return-expected-result process)
   (multiple-value-bind (body status headers uri stream must-close reason-phrase)
       (drakma:http-request (post-url ap)
 			   :method :post :force-ssl T :parameters params)
@@ -212,36 +220,26 @@
 	       nil)))
 	pairs))))
 
-(defmacro possibly-return-expected-result (tag)
-  `(when (not (eql :unbound *expected-result*))
-     (return-from ,tag (typecase *expected-result*
-			 (function (funcall *expected-result*))
-			 (T *expected-result*)))))
-
 (defmethod authorize ((ap authorize-processor)
 		      cc-data amount &key &allow-other-keys)
-  (possibly-return-expected-result authorize)
   (let* ((*processor* ap)
 	 (post-args (build-post ap :auth :cc-data cc-data :amount amount)))
     (process ap post-args)))
 
 (defmethod preauth-capture ((ap authorize-processor)
 			    transaction-id &key amount &allow-other-keys)
-  (possibly-return-expected-result preauth-capture)
   (let* ((*processor* ap)
 	 (post-args (build-post ap :capture-prior-auth :transaction-id transaction-id :amount amount)))
     (process ap post-args))
   )
 
 (defmethod sale ((ap authorize-processor) cc-data amount &key  &allow-other-keys)
-  (possibly-return-expected-result sale)
   (let* ((*processor* ap)
 	 (post-args (build-post ap :sale :cc-data cc-data :amount amount)))
     (process ap post-args))
   )
 
 (defmethod void ((ap authorize-processor) transaction-id &key &allow-other-keys)
-  (possibly-return-expected-result void)
   (let* ((*processor* ap)
 	 (post-args (build-post ap :void :transaction-id transaction-id)))
     (process ap post-args))

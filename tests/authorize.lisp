@@ -1,5 +1,9 @@
 (in-package :cl-authorize-tests)
 
+(defun my-run-tests ()
+  "here to get around package gymnastic required by lisp-unit macrology"
+  (run-all-tests :cl-authorize-tests))
+
 (with-package-iterator (sym '(:cl-authorize-net) :internal :external)
   (iter (multiple-value-bind (more? symbol accessibility pkg) (sym)
 	  (declare (ignore accessibility))

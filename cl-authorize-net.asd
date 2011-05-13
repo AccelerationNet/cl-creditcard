@@ -18,17 +18,18 @@
   :components
   ((:module :src
 	    :serial T
-	    :components ((:file "packages")
-			 (:file "credit-card-api")
-			 (:file "authorize-processor")
-			 (:file "authorize-echeck")
-			 )))
+	    :components ((:module :authorize-net
+				  :serial T
+				  :components ((:file "packages")
+					       (:file "authorize-processor")
+					       (:file "authorize-echeck"))
+				  ))))
   :depends-on (:cl-creditcard :drakma :alexandria :symbol-munger))
 
 (defmethod asdf:perform ((o asdf:test-op) (c (eql (find-system :cl-authorize-net))))
   (asdf:oos 'asdf:load-op :cl-authorize-net-tests)
-  (let ((*package* (find-package :cl-authorize-net-tests)))
-    (eval (list (intern "RUN-TESTS" :cl-authorize-net-tests)))))
+  (funcall (intern "MY-RUN-TESTS" :cl-authorize-tests))
+  )
 
 (defsystem :cl-authorize-net-tests
   :description "Talk to the Authorize.net Payment Processing Software. Test Suite."

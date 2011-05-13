@@ -1,0 +1,14 @@
+= CL-Creditcard =
+CL-CreditCard is a common lisp library providing a common interface to charge creditcards.
+
+== CL-Authorize-NET ==
+CL-Authorize-net is a common lisp library for payment processing via Authorize.net.  It implements the CL-Creditcard interface.
+
+''CL-Authorize-net is production ready and is in use.''
+
+== CL-Monetra ==
+CL-Monetra is a common lisp library for payment processing via CL-Monetra.  It implements the CL-Creditcard interface
+
+''CAUTION: This processor is much less tested than CL-Authorize-net''
+
+== Examples: ==

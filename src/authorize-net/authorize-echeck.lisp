@@ -31,10 +31,7 @@ Must be a string of up to 50 characters")
    (echeck-type :initarg :echeck-type :accessor echeck-type :type (string)
 		:initform "WEB"
 		:documentation "The type of electronic check transaction.
-Must be one of +echeck-types+.  Defaults to WEB")
-   (recurring-billing :initarg :recurring-billing
-		      :accessor recurring-billing :initform nil
-		      :documentation "The recurring stats of the transaction.  Required only when echeck-type is WEB.  Defaults to nil")))
+Must be one of +echeck-types+.  Defaults to WEB")))
 
 (define-condition invalid-echeck-data (error)
   ((echeck-data :initarg :echeck-data :accessor echeck-data

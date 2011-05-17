@@ -361,5 +361,11 @@
 		      "The test should authorize and return a transaction code of 0")
 	(assert-equal "1.00"  (response-value :amount pairs)
 		      "The test should authorize an amount of 1$ which is what we passed"))
-      ))
-  )
+
+      (setf (bank-name echeck-data) "")
+      (multiple-value-bind (tranid pairs) (sale processor echeck-data "1.00")
+	(assert-equal "0" tranid
+		      "The test should authorize and return a transaction code of 0")
+	(assert-equal "1.00"  (response-value :amount pairs)
+		      "The test should authorize an amount of 1$ which is what we passed"))
+      )))

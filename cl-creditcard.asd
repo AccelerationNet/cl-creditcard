@@ -23,31 +23,6 @@
 			 )))
   :depends-on (:iterate))
 
-(defsystem :cl-monetra
-    :description "Talk to the Monetra Payment Processing Software."
-    :author "<programmers@acceleration.net>"
-    :licence "MIT"
-    :version "0.1"
-    :components
-    ((:module :src
-	      :serial T
-	      :components ((:file "packages")
-			   (:file "credit-card-api")
-			   (:file "socket-messenger")
-			   )))
-    :depends-on (:cl-creditcard :cl+ssl :flexi-streams :usocket))
-
-(defsystem :cl-monetra-tests
-  :description "Talk to the Monetra Payment Processing Software. Test Suite."
-  :author "<programmers@acceleration.net>"
-  :licence "MIT"
-  :version "0.1"
-  :components
-  ((:module :tests
-	    :components ((:file "socket-messenger-tests.lisp" )
-			 )))
-  :depends-on (:cl-monetra :lift))
-
 
 ;; Copyright (c) 2008 Acceleration.net, Russ Tyndall, Ryan Davis, Nathan Bird
 

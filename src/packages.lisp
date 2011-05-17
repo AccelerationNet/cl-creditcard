@@ -16,10 +16,3 @@
    #:deny-exception
    #:test-mode
    ))
-
-#|
-(defpackage :cl-monetra
-  (:documentation "Libarary for talking with Monetra payment processor")
-  (:use :common-lisp :cl+ssl )
-  )
-|#

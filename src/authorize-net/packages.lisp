@@ -5,7 +5,7 @@
    ;;major functions
    #:sale #:authorize #:preauth-capture #:void
    
-   #:cc-data #:authorize-data :authorize-processor
+   #:cc-data #:authorize-data :authorize-processor #:echeck-data
    #:test-mode
    #:account #:expdate #:name #:ccv #:address #:zip
 
@@ -18,7 +18,7 @@
    #:deny-exception
 
    ;;Extra data
-   #:first-name #:last-name #:company #:address #:city #:email #:state #:zip #:country #:phone #:fax #:cust-id #:customer-ip #:recurring-billing #:invoice-num
+   #:first-name #:last-name #:company #:address #:city #:email #:state #:zip #:country #:phone #:fax #:cust-id #:customer-ip #:recurring-billing #:invoice-num #:bank-aba-code #:bank-acct-num #:echeck-type #:bank-name #:bank-acct-type #:bank-acct-name
 
    #:*expected-result*
    #:*log-fn*

@@ -139,7 +139,7 @@
 		(setf (gethash "x_card_code" val) "HIDDEN-CCV"))
 
 	      ;;mask these
-	      (dolist (key '("x_card_num" "x_bank_aba_code" "x_bank_acct_num"))
+	      (dolist (key '("x_card_num" "x_bank_aba_code" "x_bank_acct_num" "x_tran_key" "x_login"))
 		(when-let ((x (gethash key val)))
 		  (setf (gethash key val)
 			(let* ((l (length x))

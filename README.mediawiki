@@ -6,9 +6,53 @@ CL-Authorize-net is a common lisp library for payment processing via Authorize.n
 
 ''CL-Authorize-net is production ready and is in use.''
 
+=== Example ===
+
+<pre>
+(require :cl-authorize-net)
+(defvar *auth-net* (make-instance 'cl-authorize-net:authorize-processor 
+				  :login "YOUR LOGIN" 
+				  :trankey "YOUR TRANKEY" 
+				  :test-mode :full))
+(cl-authorize-net:sale *auth-data*
+		       (make-instance 'cl-authorize-net:authorize-data
+				      :account "4222222222222" :expdate "06/11"
+				      :first-name "Test")
+		       5)
+</pre>
+
+
+=== Objects ===
+* authorize-processor
+* authorize-data - holds information relevant to making credit-card charges
+* echeck-data - holds information relevant to making ACH / echeck charges
+
+=== Methods ===
+
+All operations are based around a <code>authorize-processor</code> instance.
+
+* (authorize processor data amount)
+Do a pre-authorization without capture returning a
+transaction identifier that can later be used with preauth-capture.
+
+Not valid with echeck-data.
+
+* (preauth-capture processor transaction-id &key amount)
+Capture a charge that was previously authorized with authorize.
+Some processors allow capturing a different amount than was originally authorized.
+
+Not valid with echeck-data.
+
+* (sale processor data amount)
+Do a one time charge on a credit card for an amount using
+the given processor. Other provided keys are up to the processor to interpret
+or ignore.
+
+Returns the transaction's unique identifier if successful.
+* (void processor transaction-id)
+Void a previous transaction.
+
 == CL-Monetra ==
 CL-Monetra is a common lisp library for payment processing via CL-Monetra.  It implements the CL-Creditcard interface
 
-''CAUTION: This processor is much less tested than CL-Authorize-net''
-
-== Examples: ==
+''CAUTION: This processor was in development and then abandoned.  See code in the monetra-dev branch if you want to use monetra''

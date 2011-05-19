@@ -84,13 +84,15 @@
   (let ((params-sym (or params-sym (gensym "params"))))
     `(let ((,params-sym ,(or params `(make-hash-table :test 'equalp))))
        (flet ((,param-fn-sym (k v)
-		(when v (ensure-gethash k ,params-sym v))
+		(if v
+		    (ensure-gethash k ,params-sym v)
+		    (remhash k ,params-sym))
 		,params-sym))
 	 ,@body)))
   )
 
-(defmethod prebuild-post :around ((ap authorize-processor) cc-data type)
-  (with-param-hash (param (call-next-method))
+(defmethod prebuild-post ((ap authorize-processor) cc-data type)
+  (with-param-hash (param)
     (param "x_version" +version+)
     (param "x_delim_data" (bool-value T))
     (param "x_delim_char" +delimiter+)
@@ -98,11 +100,7 @@
     (param "x_login" (login ap))
     (param "x_tran_key" (trankey ap))
     (param "x_relay_response" (bool-value nil))
-    (param "x_test_request" (bool-value (test-mode ap)))))
-
-(defmethod prebuild-post ((ap authorize-processor) (cc-data authorize-data) type )
-  "returns a hashtable of post parameters"
-  (with-param-hash (param)
+    (param "x_test_request" (bool-value (test-mode ap)))
     (param "x_type" (typecase type
 		      (string type)
 		      (symbol (transaction-type type))))))

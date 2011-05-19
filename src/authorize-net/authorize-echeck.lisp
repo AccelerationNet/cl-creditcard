@@ -66,13 +66,14 @@ Must be one of +echeck-types+.  Defaults to WEB")))
 
 (defmethod prebuild-post ((ap authorize-processor) (cc-data echeck-data) type )
   "returns a hashtable of post parameters"
-  (with-param-hash (param)
+  (with-param-hash (param (call-next-method))
     (when (string-equal "WEB" (echeck-type cc-data))
       (param (munge-authorize-slot-name 'recurring-billing)
 	     (bool-value (slot-value cc-data 'recurring-billing))))
     (dolist (sym '(bank-name bank-acct-name bank-acct-type echeck-type))
       (param (munge-authorize-slot-name sym)
 	     (slot-value cc-data sym)))
+    (param "x_type" nil) ;;remove type, it's not valid for echecks
     (param "x_method" "ECHECK")))
 
 (define-condition unsupported-operation (error) ())

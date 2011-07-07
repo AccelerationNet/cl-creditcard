@@ -5,11 +5,6 @@
 
 (in-package :cl-creditcard.system)
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (when (find-system 'asdf-system-connections nil)
-    (asdf:operate 'asdf:load-op 'asdf-system-connections)))
-
-
 (defsystem :cl-authorize-net
   :description "library for talking with authorize.net credit card processors."
   :author "<programmers@acceleration.net>"

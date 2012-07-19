@@ -176,7 +176,10 @@
 				    :amount :method :transaction-type :customer-id )
 			 collect (cons k v))))
     (when (>= len 38)
-      (push (cons :card-code-response (nth 38 flat-list)) response))
+      (push (cons :card-code-response (nth 38 flat-list)) response)
+      (push (cons :last4 (nth 50 flat-list)) response)
+      (push (cons :card-type (nth 51 flat-list)) response)
+      )
     (log-it :debug
 	    "cl-authorize-net:get-response-vars from:~a,~%results: ~s"
 	    (post-url *processor*) response)

@@ -5,6 +5,8 @@
   (:shadowing-import-from #:alexandria #:set-equal)
   (:export ))
 
+(in-package :cl-authorize-tests)
+
 (with-package-iterator (sym '(:cl-authorize-net) :internal :external)
   (iter (multiple-value-bind (more? symbol accessibility pkg) (sym)
 	  (declare (ignore accessibility))

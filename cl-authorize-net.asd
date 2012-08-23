@@ -33,6 +33,7 @@
   :version "0.1"
   :components
   ((:module :tests
+            :serial T
 	    :components ((:file "packages")
 			 (:file "authorize" )
 			 )))

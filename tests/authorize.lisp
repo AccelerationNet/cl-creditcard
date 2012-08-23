@@ -4,16 +4,6 @@
   "here to get around package gymnastic required by lisp-unit macrology"
   (run-all-tests :cl-authorize-tests))
 
-(with-package-iterator (sym '(:cl-authorize-net) :internal :external)
-  (iter (multiple-value-bind (more? symbol accessibility pkg) (sym)
-	  (declare (ignore accessibility))
-	  (when (eql (find-package :cl-authorize-net)
-		     pkg)
-	    (ignore-errors
-	      (unintern symbol :cl-authorize-tests)
-	      (import (list symbol) :cl-authorize-tests)))
-	  (while more?))))
-
 (defun test-authorize-processor ()
   (make-instance 'authorize-processor :login "cnpdev4289" :trankey "SR2P8g4jdEn7vFLQ" :test-mode :full))
 

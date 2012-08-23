@@ -337,7 +337,7 @@
 			 "a2345678901234567890" ;; right length, non-numeric
 			 )
 
-      (assert-bad-values :bank-name 5 nil ""
+      (assert-bad-values :bank-name 5 nil
 			 "testingtestingtestingtestingtestingtestingtesting!!" ;; too long
 			 )
 

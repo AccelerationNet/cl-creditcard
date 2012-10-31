@@ -1,9 +1,5 @@
 (in-package :cl-authorize-tests)
 
-(defun my-run-tests ()
-  "here to get around package gymnastic required by lisp-unit macrology"
-  (run-all-tests :cl-authorize-tests))
-
 (defun test-authorize-processor ()
   (make-instance 'authorize-processor :login "cnpdev4289" :trankey "SR2P8g4jdEn7vFLQ" :test-mode :full))
 

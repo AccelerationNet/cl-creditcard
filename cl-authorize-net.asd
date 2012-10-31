@@ -22,9 +22,9 @@
   :depends-on (:cl-creditcard :drakma :alexandria :symbol-munger))
 
 (defmethod asdf:perform ((o asdf:test-op) (c (eql (find-system :cl-authorize-net))))
-  (asdf:oos 'asdf:load-op :cl-authorize-net-tests)
-  (funcall (intern "MY-RUN-TESTS" :cl-authorize-tests))
-  )
+  (asdf:load-system :cl-authorize-net-tests)
+  (let ((*package* (find-package :cl-authorize-tests)))
+    (eval (read-from-string "(run-tests :all)"))))
 
 (defsystem :cl-authorize-net-tests
   :description "Talk to the Authorize.net Payment Processing Software. Test Suite."

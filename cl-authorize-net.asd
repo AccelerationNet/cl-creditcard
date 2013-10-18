@@ -19,7 +19,8 @@
 					       (:file "authorize-processor")
 					       (:file "authorize-echeck"))
 				  ))))
-  :depends-on (:cl-creditcard :drakma :alexandria :symbol-munger))
+  :depends-on (:cl-creditcard :drakma :alexandria :symbol-munger
+               :split-sequence))
 
 (defmethod asdf:perform ((o asdf:test-op) (c (eql (find-system :cl-authorize-net))))
   (asdf:load-system :cl-authorize-net-tests)
